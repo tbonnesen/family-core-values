@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Family Core Values</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="hero__content">
+        <p class="eyebrow">Family Core Values</p>
+        <h1>Grow Character Together</h1>
+        <p class="intro">
+          Practice one value at a time with stories, choices, and reflections.
+        </p>
+      </div>
+      <div class="hero__sparkles" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="panel panel--spotlight" aria-labelledby="spotlight-title">
+        <h2 id="spotlight-title">Today's Spotlight</h2>
+        <p id="spotlight-value" class="spotlight-value"></p>
+        <p id="spotlight-message" class="spotlight-message"></p>
+      </section>
+
+      <section class="panel panel--progress" aria-labelledby="progress-title">
+        <h2 id="progress-title">Progress</h2>
+        <div class="stats">
+          <div><strong id="attempts-count">0</strong><span>Challenges</span></div>
+          <div><strong id="correct-count">0</strong><span>Correct</span></div>
+          <div><strong id="streak-count">0</strong><span>Streak</span></div>
+        </div>
+      </section>
+
+      <section class="panel panel--values" aria-labelledby="values-title">
+        <h2 id="values-title">Our Values</h2>
+        <p class="hint">Tap a card to see what it looks like in daily life.</p>
+        <div id="value-grid" class="value-grid"></div>
+      </section>
+
+      <section class="panel panel--challenge" aria-labelledby="challenge-title">
+        <h2 id="challenge-title">Scenario Challenge</h2>
+        <p id="scenario-text" class="scenario-text"></p>
+        <div id="choices" class="choices"></div>
+        <p id="scenario-result" class="scenario-result" aria-live="polite"></p>
+        <button id="next-scenario" class="btn">New Scenario</button>
+      </section>
+
+      <section class="panel panel--reflection" aria-labelledby="reflection-title">
+        <h2 id="reflection-title">Family Reflection</h2>
+        <p class="hint">What value did you see someone live out today?</p>
+        <form id="reflection-form" class="reflection-form">
+          <input
+            id="reflection-input"
+            type="text"
+            maxlength="180"
+            placeholder="Example: I saw Respect when my sister listened patiently."
+            required
+          />
+          <button class="btn btn--alt" type="submit">Save Reflection</button>
+        </form>
+        <ul id="reflection-list" class="reflection-list"></ul>
+      </section>
+    </main>
+
+    <template id="value-card-template">
+      <article class="value-card">
+        <button class="value-card__toggle" type="button"></button>
+        <div class="value-card__details"></div>
+      </article>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
