@@ -215,7 +215,10 @@ function setFeedback(message) {
     return;
   }
   feedbackLabel.classList.remove("is-visible");
-  feedbackLabel.textContent = message;
+  feedbackLabel.textContent = message || "";
+  if (!message) {
+    return;
+  }
   window.requestAnimationFrame(() => {
     feedbackLabel.classList.add("is-visible");
   });
@@ -264,7 +267,7 @@ function populateProfileSelect(selectEl, selectedProfileId = "") {
   }
 
   selectEl.innerHTML = "";
-  profiles.forEach((profile, profileIndex) => {
+  profiles.forEach((profile) => {
     const option = document.createElement("option");
     option.value = profile.id;
     option.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name}`;
@@ -334,7 +337,7 @@ function renderChoreChart() {
   let totalCompleted = 0;
   chartGrid.innerHTML = "";
 
-  profiles.forEach((profile) => {
+  profiles.forEach((profile, profileIndex) => {
     const assigned = choreMappings.filter((mapping) => mapping.assignedProfileId === profile.id);
     const completion = getProfileWeekCompletion(profileChoreCompletionMap, profile.id, weekKey);
     const completedCount = assigned.filter((mapping) => Boolean(completion[mapping.id])).length;

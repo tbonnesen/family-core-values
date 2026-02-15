@@ -32,6 +32,7 @@
   let syncPushTimer = null;
   let isApplyingRemoteState = false;
   let lastRemoteUpdatedAt = "";
+  let lastRemoteStateSignature = "";
   let syncPollTimer = null;
 
   function canUseRemoteSync() {
@@ -367,16 +368,20 @@
 
       const remoteUpdatedAt = typeof payload.updatedAt === "string" ? payload.updatedAt : "";
       const remoteState = payload.state && typeof payload.state === "object" ? payload.state : {};
+      const remoteStateSignature = JSON.stringify(remoteState);
 
       if (remoteUpdatedAt && remoteUpdatedAt === lastRemoteUpdatedAt) {
         return;
       }
 
-      if (Object.keys(remoteState).length) {
-        applySharedStateFromRemote(remoteState);
-        lastRemoteUpdatedAt = remoteUpdatedAt || new Date().toISOString();
-        global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: lastRemoteUpdatedAt } }));
+      if (!remoteUpdatedAt && remoteStateSignature === lastRemoteStateSignature) {
+        return;
       }
+
+      applySharedStateFromRemote(remoteState);
+      lastRemoteUpdatedAt = remoteUpdatedAt;
+      lastRemoteStateSignature = remoteStateSignature;
+      global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: lastRemoteUpdatedAt } }));
     } catch {
       // No-op: keep local copy while remote is unreachable.
     }
@@ -418,10 +423,11 @@
 
       const remoteState = payload.state && typeof payload.state === "object" ? payload.state : {};
       lastRemoteUpdatedAt = typeof payload.updatedAt === "string" ? payload.updatedAt : "";
+      lastRemoteStateSignature = JSON.stringify(remoteState);
 
       syncEnabled = true;
 
-      if (Object.keys(remoteState).length) {
+      if (lastRemoteUpdatedAt || Object.keys(remoteState).length) {
         applySharedStateFromRemote(remoteState);
       } else if (hasAnySharedState(localBefore)) {
         scheduleSharedStatePush(0);

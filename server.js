@@ -85,7 +85,12 @@ function collectRequestBody(req) {
 function resolveSafePath(requestUrl) {
   const parsed = new URL(requestUrl, `http://${HOST}:${PORT}`);
   const urlPath = parsed.pathname === "/" ? "/index.html" : parsed.pathname;
-  const decoded = decodeURIComponent(urlPath);
+  let decoded;
+  try {
+    decoded = decodeURIComponent(urlPath);
+  } catch {
+    return null;
+  }
   const normalized = path.normalize(decoded).replace(/^(\.\.(\/|\\|$))+/, "");
   const relativePath = normalized.startsWith(path.sep) ? normalized.slice(1) : normalized;
   const filePath = path.join(ROOT_DIR, relativePath);
