@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Orbitron:wght@500;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Poppins:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -35,11 +35,32 @@
 
       <section class="panel panel--progress" aria-labelledby="progress-title">
         <h2 id="progress-title">Progress</h2>
+        <p id="active-child-label" class="panel-meta"></p>
         <div class="stats">
           <div><strong id="attempts-count">0</strong><span>Challenges</span></div>
           <div><strong id="correct-count">0</strong><span>Correct</span></div>
           <div><strong id="streak-count">0</strong><span>Streak</span></div>
         </div>
+      </section>
+
+      <section class="panel panel--profiles" aria-labelledby="profiles-title">
+        <h2 id="profiles-title">Child Profiles</h2>
+        <form id="profile-form" class="profile-form">
+          <input
+            id="profile-name-input"
+            type="text"
+            maxlength="36"
+            placeholder="Add child name"
+            required
+          />
+          <button class="btn btn--small" type="submit">Add Child</button>
+        </form>
+        <label class="field-label" for="profile-select">Active Child</label>
+        <select id="profile-select" required></select>
+        <p class="field-label">Applicable Ages</p>
+        <div id="profile-age-grid" class="profile-age-grid"></div>
+        <button id="profile-age-save" class="btn btn--small btn--alt" type="button">Save Ages</button>
+        <div id="profile-list" class="profile-list"></div>
       </section>
 
       <section class="panel panel--weekly" aria-labelledby="weekly-title">
@@ -61,6 +82,22 @@
           <button id="memory-prompt" class="btn btn--small btn--alt" type="button">Practice Prompt</button>
         </div>
         <p id="memory-practice" class="memory-practice"></p>
+        <div class="memory-game">
+          <div class="memory-game__header">
+            <h3>Verse Memory Game</h3>
+            <select id="memory-game-type" aria-label="Verse game type">
+              <option value="missing">Missing Word</option>
+              <option value="next">Next Word Quiz</option>
+            </select>
+          </div>
+          <p id="memory-game-question" class="memory-game__question"></p>
+          <div id="memory-game-options" class="memory-game-options"></div>
+          <div class="memory-game-actions">
+            <button id="memory-game-new" class="btn btn--small" type="button">New Round</button>
+          </div>
+          <p id="memory-game-result" class="memory-game__result"></p>
+          <p id="memory-game-score" class="memory-game__score"></p>
+        </div>
       </section>
 
       <section class="panel panel--values" aria-labelledby="values-title">
@@ -80,6 +117,7 @@
       <section class="panel panel--chores" aria-labelledby="chores-title">
         <h2 id="chores-title">Chore-To-Value Mapping</h2>
         <p class="hint">Connect daily chores to a core value.</p>
+        <p id="chore-summary" class="panel-meta"></p>
         <form id="chore-form" class="chore-form">
           <input
             id="chore-input"
@@ -109,6 +147,33 @@
         </form>
         <ul id="reflection-list" class="reflection-list"></ul>
       </section>
+
+      <section class="panel panel--parent" aria-labelledby="parent-title">
+        <h2 id="parent-title">Parent Dashboard</h2>
+        <div class="parent-stats">
+          <div>
+            <strong id="parent-children-count">0</strong>
+            <span>Children</span>
+          </div>
+          <div>
+            <strong id="parent-challenges-count">0</strong>
+            <span>Challenges</span>
+          </div>
+          <div>
+            <strong id="parent-accuracy">0%</strong>
+            <span>Accuracy</span>
+          </div>
+          <div>
+            <strong id="parent-chores-week">0</strong>
+            <span>Chores This Week</span>
+          </div>
+          <div>
+            <strong id="parent-memory-accuracy">0%</strong>
+            <span>Memory Game</span>
+          </div>
+        </div>
+        <p id="parent-active-summary" class="spotlight-message"></p>
+      </section>
     </main>
 
     <template id="value-card-template">
@@ -124,5 +189,6 @@
 
     <script src="values-data.js"></script>
     <script src="app.js"></script>
+    <script src="read-aloud.js"></script>
   </body>
 </html>

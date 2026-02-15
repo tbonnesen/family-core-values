@@ -1,5 +1,7 @@
 const values = Array.isArray(window.CORE_VALUES) ? window.CORE_VALUES : [];
 
+const PROFILE_AGES = [1, 2, 3, 4, 5, 6, 7];
+
 const scenarios = [
   {
     prompt: "You got a lower grade than you hoped for. What shows the best response?",
@@ -143,6 +145,13 @@ const STORAGE_REFLECTION_KEY = "fcv_reflections_v1";
 const STORAGE_SCENARIO_KEY = "fcv_last_scenario_v1";
 const STORAGE_CHORE_MAP_KEY = "fcv_chore_mappings_v1";
 
+const STORAGE_PROFILES_KEY = "fcv_profiles_v2";
+const STORAGE_ACTIVE_PROFILE_KEY = "fcv_active_profile_v2";
+const STORAGE_PROFILE_PROGRESS_KEY = "fcv_profile_progress_v2";
+const STORAGE_PROFILE_REFLECTION_KEY = "fcv_profile_reflections_v2";
+const STORAGE_PROFILE_MEMORY_GAME_KEY = "fcv_profile_memory_game_v2";
+const STORAGE_PROFILE_CHORE_COMPLETION_KEY = "fcv_profile_chore_completion_v2";
+
 const valueGrid = document.getElementById("value-grid");
 const cardTemplate = document.getElementById("value-card-template");
 const spotlightValue = document.getElementById("spotlight-value");
@@ -161,15 +170,38 @@ const memoryToggleBtn = document.getElementById("memory-toggle");
 const memoryPromptBtn = document.getElementById("memory-prompt");
 const memoryPractice = document.getElementById("memory-practice");
 
+const memoryGameType = document.getElementById("memory-game-type");
+const memoryGameQuestion = document.getElementById("memory-game-question");
+const memoryGameOptions = document.getElementById("memory-game-options");
+const memoryGameNewBtn = document.getElementById("memory-game-new");
+const memoryGameResult = document.getElementById("memory-game-result");
+const memoryGameScore = document.getElementById("memory-game-score");
+
 const scenarioText = document.getElementById("scenario-text");
 const choicesContainer = document.getElementById("choices");
 const scenarioResult = document.getElementById("scenario-result");
 const nextScenarioBtn = document.getElementById("next-scenario");
 
+const activeChildLabel = document.getElementById("active-child-label");
 const attemptsCount = document.getElementById("attempts-count");
 const correctCount = document.getElementById("correct-count");
 const streakCount = document.getElementById("streak-count");
 
+const profileForm = document.getElementById("profile-form");
+const profileNameInput = document.getElementById("profile-name-input");
+const profileSelect = document.getElementById("profile-select");
+const profileAgeGrid = document.getElementById("profile-age-grid");
+const profileAgeSaveBtn = document.getElementById("profile-age-save");
+const profileList = document.getElementById("profile-list");
+
+const parentChildrenCount = document.getElementById("parent-children-count");
+const parentChallengesCount = document.getElementById("parent-challenges-count");
+const parentAccuracy = document.getElementById("parent-accuracy");
+const parentChoresWeek = document.getElementById("parent-chores-week");
+const parentMemoryAccuracy = document.getElementById("parent-memory-accuracy");
+const parentActiveSummary = document.getElementById("parent-active-summary");
+
+const choreSummary = document.getElementById("chore-summary");
 const choreForm = document.getElementById("chore-form");
 const choreInput = document.getElementById("chore-input");
 const choreValueSelect = document.getElementById("chore-value-select");
@@ -179,9 +211,17 @@ const reflectionForm = document.getElementById("reflection-form");
 const reflectionInput = document.getElementById("reflection-input");
 const reflectionList = document.getElementById("reflection-list");
 
+let profiles = [];
+let activeProfileId = null;
+let profileProgressMap = {};
+let profileReflectionMap = {};
+let profileMemoryGameMap = {};
+let profileChoreCompletionMap = {};
+let choreMappings = [];
+
 let currentScenario = null;
 let memoryVisible = false;
-let choreMappings = [];
+let currentMemoryGame = null;
 
 function slugify(text) {
   return text
@@ -211,22 +251,17 @@ function normalizeValue(value) {
   return value ? value.toLowerCase() : "";
 }
 
-function getValueByIdentifier(identifier) {
-  const needle = normalizeValue(identifier);
-  return values.find((item) => {
-    const slug = item.slug || slugify(item.name);
-    return normalizeValue(item.name) === needle || normalizeValue(slug) === needle;
-  });
+function shuffle(array) {
+  const copy = array.slice();
+  for (let i = copy.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [copy[i], copy[j]] = [copy[j], copy[i]];
+  }
+  return copy;
 }
 
-function getValueToneClass(identifier) {
-  const value = getValueByIdentifier(identifier);
-  if (!value) {
-    return "";
-  }
-
-  const index = values.findIndex((item) => item.name === value.name);
-  return index >= 0 ? `value-tone-${(index % values.length) + 1}` : "";
+function unique(array) {
+  return Array.from(new Set(array));
 }
 
 function getQuarterInfo(date = new Date()) {
@@ -252,20 +287,374 @@ function getYearWeekIndex(date = new Date()) {
   return Math.floor(dayIndex / 7);
 }
 
-function getProgress() {
-  return loadJSON(STORAGE_PROGRESS_KEY, {
+function getWeekKey(date = new Date()) {
+  const weekIndex = getYearWeekIndex(date) + 1;
+  return `${date.getFullYear()}-W${weekIndex}`;
+}
+
+function getValueByIdentifier(identifier) {
+  const needle = normalizeValue(identifier);
+  return values.find((item) => {
+    const slug = item.slug || slugify(item.name);
+    return normalizeValue(item.name) === needle || normalizeValue(slug) === needle;
+  });
+}
+
+function getValueToneClass(identifier) {
+  const value = getValueByIdentifier(identifier);
+  if (!value) {
+    return "";
+  }
+
+  const index = values.findIndex((item) => item.name === value.name);
+  return index >= 0 ? `value-tone-${(index % values.length) + 1}` : "";
+}
+
+function getDefaultProgress() {
+  return {
     attempts: 0,
     correct: 0,
     streak: 0,
     lastPlayedDate: ""
+  };
+}
+
+function getDefaultMemoryStats() {
+  return {
+    attempts: 0,
+    correct: 0
+  };
+}
+
+function createProfile(name = "Child 1", ages = [5]) {
+  return {
+    id: createId("child"),
+    name,
+    ages: unique(ages).filter((age) => PROFILE_AGES.includes(age)).sort((a, b) => a - b)
+  };
+}
+
+function getActiveProfile() {
+  return profiles.find((profile) => profile.id === activeProfileId) || null;
+}
+
+function ensureProfileData(profileId) {
+  if (!profileProgressMap[profileId]) {
+    profileProgressMap[profileId] = getDefaultProgress();
+  }
+  if (!profileReflectionMap[profileId]) {
+    profileReflectionMap[profileId] = [];
+  }
+  if (!profileMemoryGameMap[profileId]) {
+    profileMemoryGameMap[profileId] = getDefaultMemoryStats();
+  }
+  if (!profileChoreCompletionMap[profileId]) {
+    profileChoreCompletionMap[profileId] = {};
+  }
+}
+
+function saveProfileDataMaps() {
+  saveJSON(STORAGE_PROFILE_PROGRESS_KEY, profileProgressMap);
+  saveJSON(STORAGE_PROFILE_REFLECTION_KEY, profileReflectionMap);
+  saveJSON(STORAGE_PROFILE_MEMORY_GAME_KEY, profileMemoryGameMap);
+  saveJSON(STORAGE_PROFILE_CHORE_COMPLETION_KEY, profileChoreCompletionMap);
+}
+
+function migrateLegacyData(defaultProfileId) {
+  const legacyProgress = loadJSON(STORAGE_PROGRESS_KEY, null);
+  const legacyReflections = loadJSON(STORAGE_REFLECTION_KEY, null);
+
+  if (legacyProgress && !profileProgressMap[defaultProfileId]) {
+    profileProgressMap[defaultProfileId] = legacyProgress;
+  }
+
+  if (Array.isArray(legacyReflections) && legacyReflections.length && !profileReflectionMap[defaultProfileId]) {
+    profileReflectionMap[defaultProfileId] = legacyReflections;
+  }
+}
+
+function initProfilesAndData() {
+  profiles = loadJSON(STORAGE_PROFILES_KEY, []);
+  if (!Array.isArray(profiles) || !profiles.length) {
+    profiles = [createProfile("Child 1", [5])];
+  }
+
+  profileProgressMap = loadJSON(STORAGE_PROFILE_PROGRESS_KEY, {});
+  profileReflectionMap = loadJSON(STORAGE_PROFILE_REFLECTION_KEY, {});
+  profileMemoryGameMap = loadJSON(STORAGE_PROFILE_MEMORY_GAME_KEY, {});
+  profileChoreCompletionMap = loadJSON(STORAGE_PROFILE_CHORE_COMPLETION_KEY, {});
+
+  migrateLegacyData(profiles[0].id);
+
+  profiles.forEach((profile) => ensureProfileData(profile.id));
+
+  const storedActiveProfile = localStorage.getItem(STORAGE_ACTIVE_PROFILE_KEY);
+  activeProfileId = profiles.some((profile) => profile.id === storedActiveProfile)
+    ? storedActiveProfile
+    : profiles[0].id;
+
+  saveJSON(STORAGE_PROFILES_KEY, profiles);
+  saveProfileDataMaps();
+  localStorage.setItem(STORAGE_ACTIVE_PROFILE_KEY, activeProfileId);
+}
+
+function setActiveProfile(profileId, options = {}) {
+  const { refreshScenario = true } = options;
+  if (!profiles.some((profile) => profile.id === profileId)) {
+    return;
+  }
+
+  activeProfileId = profileId;
+  localStorage.setItem(STORAGE_ACTIVE_PROFILE_KEY, profileId);
+
+  renderProfileSelect();
+  renderProfileAgeGrid();
+  renderProfileList();
+
+  const activeProfile = getActiveProfile();
+  activeChildLabel.textContent = activeProfile ? `Viewing: ${activeProfile.name}` : "";
+
+  setProgress(getActiveProgress());
+  loadReflections();
+  renderMemoryVerse();
+  renderMemoryGameScore();
+  renderChoreMappings();
+  renderParentDashboard();
+
+  if (refreshScenario) {
+    loadScenario();
+  }
+}
+
+function renderProfileSelect() {
+  if (!profileSelect) {
+    return;
+  }
+
+  profileSelect.innerHTML = "";
+  profiles.forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = profile.name;
+    profileSelect.appendChild(option);
+  });
+
+  profileSelect.value = activeProfileId;
+}
+
+function renderProfileAgeGrid() {
+  if (!profileAgeGrid) {
+    return;
+  }
+
+  const activeProfile = getActiveProfile();
+  const selectedAges = activeProfile ? activeProfile.ages || [] : [];
+
+  profileAgeGrid.innerHTML = "";
+
+  PROFILE_AGES.forEach((age) => {
+    const label = document.createElement("label");
+    label.className = "age-check";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.value = String(age);
+    checkbox.checked = selectedAges.includes(age);
+
+    const text = document.createElement("span");
+    text.textContent = `Age ${age}`;
+
+    label.appendChild(checkbox);
+    label.appendChild(text);
+    profileAgeGrid.appendChild(label);
   });
 }
 
+function getSelectedAgesFromGrid() {
+  const checkboxes = profileAgeGrid.querySelectorAll('input[type="checkbox"]:checked');
+  return Array.from(checkboxes)
+    .map((checkbox) => Number(checkbox.value))
+    .filter((age) => PROFILE_AGES.includes(age))
+    .sort((a, b) => a - b);
+}
+
+function renderProfileList() {
+  if (!profileList) {
+    return;
+  }
+
+  profileList.innerHTML = "";
+
+  profiles.forEach((profile) => {
+    const badge = document.createElement("span");
+    badge.className = "profile-pill";
+    if (profile.id === activeProfileId) {
+      badge.classList.add("is-active");
+    }
+
+    const ages = profile.ages && profile.ages.length ? profile.ages.join(",") : "none";
+    badge.textContent = `${profile.name} • ages ${ages}`;
+    profileList.appendChild(badge);
+  });
+}
+
+function initProfileControls() {
+  if (!profileForm || !profileNameInput || !profileSelect || !profileAgeSaveBtn) {
+    return;
+  }
+
+  renderProfileSelect();
+  renderProfileAgeGrid();
+  renderProfileList();
+
+  profileForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const name = profileNameInput.value.trim();
+    if (!name) {
+      return;
+    }
+
+    const profile = createProfile(name, [5]);
+    profiles.push(profile);
+    ensureProfileData(profile.id);
+
+    saveJSON(STORAGE_PROFILES_KEY, profiles);
+    saveProfileDataMaps();
+
+    profileNameInput.value = "";
+    setActiveProfile(profile.id);
+  });
+
+  profileSelect.addEventListener("change", () => {
+    setActiveProfile(profileSelect.value);
+  });
+
+  profileAgeSaveBtn.addEventListener("click", () => {
+    const activeProfile = getActiveProfile();
+    if (!activeProfile) {
+      return;
+    }
+
+    const selectedAges = getSelectedAgesFromGrid();
+    activeProfile.ages = selectedAges;
+    saveJSON(STORAGE_PROFILES_KEY, profiles);
+
+    renderProfileList();
+    renderParentDashboard();
+  });
+}
+
+function getActiveProgress() {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return getDefaultProgress();
+  }
+  ensureProfileData(activeProfile.id);
+  return profileProgressMap[activeProfile.id];
+}
+
 function setProgress(progress) {
-  saveJSON(STORAGE_PROGRESS_KEY, progress);
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return;
+  }
+
+  profileProgressMap[activeProfile.id] = progress;
+  saveJSON(STORAGE_PROFILE_PROGRESS_KEY, profileProgressMap);
+
   attemptsCount.textContent = progress.attempts;
   correctCount.textContent = progress.correct;
   streakCount.textContent = progress.streak;
+}
+
+function getActiveMemoryStats() {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return getDefaultMemoryStats();
+  }
+  ensureProfileData(activeProfile.id);
+  return profileMemoryGameMap[activeProfile.id];
+}
+
+function setActiveMemoryStats(stats) {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return;
+  }
+  profileMemoryGameMap[activeProfile.id] = stats;
+  saveJSON(STORAGE_PROFILE_MEMORY_GAME_KEY, profileMemoryGameMap);
+}
+
+function renderMemoryGameScore() {
+  if (!memoryGameScore) {
+    return;
+  }
+  const stats = getActiveMemoryStats();
+  const accuracy = stats.attempts ? Math.round((stats.correct / stats.attempts) * 100) : 0;
+  memoryGameScore.textContent = `Game Score: ${stats.correct}/${stats.attempts} (${accuracy}%)`;
+}
+
+function getActiveReflections() {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return [];
+  }
+  ensureProfileData(activeProfile.id);
+  return profileReflectionMap[activeProfile.id];
+}
+
+function setActiveReflections(reflections) {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return;
+  }
+
+  profileReflectionMap[activeProfile.id] = reflections;
+  saveJSON(STORAGE_PROFILE_REFLECTION_KEY, profileReflectionMap);
+}
+
+function getProfileWeekCompletion(profileId) {
+  const weekKey = getWeekKey();
+  if (!profileChoreCompletionMap[profileId]) {
+    profileChoreCompletionMap[profileId] = {};
+  }
+  if (!profileChoreCompletionMap[profileId][weekKey]) {
+    profileChoreCompletionMap[profileId][weekKey] = {};
+  }
+  return profileChoreCompletionMap[profileId][weekKey];
+}
+
+function isChoreCompletedForActiveProfile(mappingId) {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return false;
+  }
+  const completion = getProfileWeekCompletion(activeProfile.id);
+  return Boolean(completion[mappingId]);
+}
+
+function setChoreCompletedForActiveProfile(mappingId, completed) {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return;
+  }
+
+  const completion = getProfileWeekCompletion(activeProfile.id);
+  completion[mappingId] = completed;
+  saveJSON(STORAGE_PROFILE_CHORE_COMPLETION_KEY, profileChoreCompletionMap);
+}
+
+function getAllVerseWords() {
+  const words = [];
+  memoryVersePool.forEach((verse) => {
+    verse.text.split(/\s+/).forEach((word) => {
+      const cleaned = word.toLowerCase().replace(/[^a-z']/g, "");
+      if (cleaned.length > 2) {
+        words.push(cleaned);
+      }
+    });
+  });
+  return unique(words);
 }
 
 function buildValueCards() {
@@ -413,12 +802,130 @@ function renderMemoryVerse() {
   }
 }
 
+function createMemoryGame(type) {
+  const verse = getMemoryVerseOfWeek();
+  const rawTokens = verse.text.split(/\s+/);
+  const allWords = getAllVerseWords();
+
+  if (type === "next") {
+    const cleaned = rawTokens
+      .map((token) => token.toLowerCase().replace(/[^a-z']/g, ""))
+      .filter(Boolean);
+
+    const idx = Math.max(0, Math.floor(Math.random() * Math.max(cleaned.length - 1, 1)));
+    const clue = cleaned[idx];
+    const answer = cleaned[Math.min(idx + 1, cleaned.length - 1)];
+
+    const distractors = shuffle(allWords.filter((word) => word !== answer)).slice(0, 3);
+    const options = shuffle(unique([answer, ...distractors])).slice(0, 4);
+
+    return {
+      type,
+      question: `In this verse, what word comes right after "${clue}"?`,
+      answer,
+      options
+    };
+  }
+
+  const candidates = rawTokens
+    .map((token, index) => ({
+      index,
+      clean: token.toLowerCase().replace(/[^a-z']/g, "")
+    }))
+    .filter((entry) => entry.clean.length > 3);
+
+  const pick = candidates[Math.floor(Math.random() * candidates.length)] || candidates[0] || {
+    index: 0,
+    clean: rawTokens[0]?.toLowerCase().replace(/[^a-z']/g, "") || ""
+  };
+
+  const questionTokens = rawTokens.slice();
+  questionTokens[pick.index] = "_____";
+
+  const distractors = shuffle(allWords.filter((word) => word !== pick.clean)).slice(0, 3);
+  const options = shuffle(unique([pick.clean, ...distractors])).slice(0, 4);
+
+  return {
+    type: "missing",
+    question: questionTokens.join(" "),
+    answer: pick.clean,
+    options
+  };
+}
+
+function renderMemoryGame() {
+  if (!memoryGameQuestion || !memoryGameOptions || !currentMemoryGame) {
+    return;
+  }
+
+  memoryGameQuestion.textContent = currentMemoryGame.question;
+  memoryGameOptions.innerHTML = "";
+  memoryGameResult.textContent = "";
+
+  currentMemoryGame.options.forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "memory-game-option";
+    button.textContent = option;
+    button.addEventListener("click", () => {
+      handleMemoryGameGuess(option, button);
+    });
+    memoryGameOptions.appendChild(button);
+  });
+}
+
+function handleMemoryGameGuess(guess, button) {
+  if (!currentMemoryGame) {
+    return;
+  }
+
+  const normalizedGuess = normalizeValue(guess);
+  const isCorrect = normalizedGuess === normalizeValue(currentMemoryGame.answer);
+
+  memoryGameOptions.querySelectorAll("button").forEach((optionButton) => {
+    optionButton.disabled = true;
+    if (normalizeValue(optionButton.textContent) === normalizeValue(currentMemoryGame.answer)) {
+      optionButton.classList.add("correct");
+    }
+  });
+
+  if (!isCorrect) {
+    button.classList.add("incorrect");
+  }
+
+  const stats = getActiveMemoryStats();
+  stats.attempts += 1;
+  if (isCorrect) {
+    stats.correct += 1;
+  }
+  setActiveMemoryStats(stats);
+
+  memoryGameResult.textContent = isCorrect
+    ? "Nice work. Correct answer!"
+    : `Not quite. Correct answer: ${currentMemoryGame.answer}`;
+  memoryGameResult.className = `memory-game__result ${isCorrect ? "good" : "bad"}`;
+
+  renderMemoryGameScore();
+  renderParentDashboard();
+}
+
+function startMemoryGame() {
+  if (!memoryGameType) {
+    return;
+  }
+
+  currentMemoryGame = createMemoryGame(memoryGameType.value);
+  renderMemoryGame();
+}
+
 function initMemoryVerseMode() {
-  if (!memoryToggleBtn || !memoryPromptBtn || !memoryPractice) {
+  if (!memoryToggleBtn || !memoryPromptBtn || !memoryGameType || !memoryGameNewBtn) {
     return;
   }
 
   renderMemoryVerse();
+  renderMemoryGameScore();
+  startMemoryGame();
 
   memoryToggleBtn.addEventListener("click", () => {
     memoryVisible = !memoryVisible;
@@ -429,6 +936,9 @@ function initMemoryVerseMode() {
     const verse = getMemoryVerseOfWeek();
     memoryPractice.textContent = buildPracticePrompt(verse.text);
   });
+
+  memoryGameType.addEventListener("change", startMemoryGame);
+  memoryGameNewBtn.addEventListener("click", startMemoryGame);
 }
 
 function pickScenario() {
@@ -500,7 +1010,7 @@ function handleChoice(selectedIndex, button) {
     button.classList.add("incorrect");
   }
 
-  const progress = getProgress();
+  const progress = getActiveProgress();
   progress.attempts += 1;
   if (wasCorrect) {
     progress.correct += 1;
@@ -512,6 +1022,8 @@ function handleChoice(selectedIndex, button) {
     ? `Great choice. ${currentScenario.explanation}`
     : `Try again next round. Best answer: ${currentScenario.value}. ${currentScenario.explanation}`;
   scenarioResult.classList.add(wasCorrect ? "good" : "bad");
+
+  renderParentDashboard();
 }
 
 function getDefaultChoreMappings() {
@@ -549,6 +1061,29 @@ function populateChoreValueSelect() {
   });
 }
 
+function getActiveChoreCompletionCount() {
+  const completed = choreMappings.filter((mapping) => isChoreCompletedForActiveProfile(mapping.id)).length;
+  return {
+    completed,
+    total: choreMappings.length
+  };
+}
+
+function renderChoreSummary() {
+  if (!choreSummary) {
+    return;
+  }
+
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    choreSummary.textContent = "";
+    return;
+  }
+
+  const { completed, total } = getActiveChoreCompletionCount();
+  choreSummary.textContent = `${activeProfile.name}: ${completed}/${total} chores completed this week`;
+}
+
 function renderChoreMappings() {
   if (!choreList) {
     return;
@@ -561,15 +1096,17 @@ function renderChoreMappings() {
     empty.className = "chore-empty";
     empty.textContent = "No mappings yet. Add your first chore above.";
     choreList.appendChild(empty);
+    renderChoreSummary();
     return;
   }
 
   choreMappings.forEach((mapping) => {
     const value = getValueByIdentifier(mapping.value);
     const toneClass = getValueToneClass(mapping.value);
+    const completed = isChoreCompletedForActiveProfile(mapping.id);
 
     const item = document.createElement("li");
-    item.className = "chore-item";
+    item.className = `chore-item${completed ? " is-complete" : ""}`;
 
     const choreName = document.createElement("span");
     choreName.className = "chore-name";
@@ -588,6 +1125,12 @@ function renderChoreMappings() {
       valueTag.textContent = mapping.value;
     }
 
+    const completeBtn = document.createElement("button");
+    completeBtn.type = "button";
+    completeBtn.className = "chore-complete";
+    completeBtn.dataset.id = mapping.id;
+    completeBtn.textContent = completed ? "Completed" : "Mark Done";
+
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
     removeBtn.className = "chore-remove";
@@ -596,9 +1139,12 @@ function renderChoreMappings() {
 
     item.appendChild(choreName);
     item.appendChild(valueTag);
+    item.appendChild(completeBtn);
     item.appendChild(removeBtn);
     choreList.appendChild(item);
   });
+
+  renderChoreSummary();
 }
 
 function initChoreMapping() {
@@ -628,10 +1174,21 @@ function initChoreMapping() {
 
     saveChoreMappings();
     renderChoreMappings();
+    renderParentDashboard();
     choreInput.value = "";
   });
 
   choreList.addEventListener("click", (event) => {
+    const completeBtn = event.target.closest("button.chore-complete");
+    if (completeBtn) {
+      const { id } = completeBtn.dataset;
+      const completed = isChoreCompletedForActiveProfile(id);
+      setChoreCompletedForActiveProfile(id, !completed);
+      renderChoreMappings();
+      renderParentDashboard();
+      return;
+    }
+
     const removeBtn = event.target.closest("button.chore-remove");
     if (!removeBtn) {
       return;
@@ -639,13 +1196,25 @@ function initChoreMapping() {
 
     const { id } = removeBtn.dataset;
     choreMappings = choreMappings.filter((item) => item.id !== id);
+
+    Object.keys(profileChoreCompletionMap).forEach((profileId) => {
+      const byWeek = profileChoreCompletionMap[profileId];
+      Object.keys(byWeek).forEach((weekKey) => {
+        if (byWeek[weekKey][id]) {
+          delete byWeek[weekKey][id];
+        }
+      });
+    });
+
     saveChoreMappings();
+    saveJSON(STORAGE_PROFILE_CHORE_COMPLETION_KEY, profileChoreCompletionMap);
     renderChoreMappings();
+    renderParentDashboard();
   });
 }
 
 function loadReflections() {
-  const reflections = loadJSON(STORAGE_REFLECTION_KEY, []);
+  const reflections = getActiveReflections();
   reflectionList.innerHTML = "";
 
   reflections.slice(0, 8).forEach((entry) => {
@@ -656,30 +1225,90 @@ function loadReflections() {
 }
 
 function saveReflection(text) {
-  const reflections = loadJSON(STORAGE_REFLECTION_KEY, []);
+  const reflections = getActiveReflections().slice();
   const date = new Date().toLocaleDateString();
   reflections.unshift({ text, date });
-  saveJSON(STORAGE_REFLECTION_KEY, reflections.slice(0, 30));
+  setActiveReflections(reflections.slice(0, 30));
 }
 
-reflectionForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const text = reflectionInput.value.trim();
-  if (!text) {
+function renderParentDashboard() {
+  if (!parentChildrenCount) {
     return;
   }
-  saveReflection(text);
-  reflectionInput.value = "";
-  loadReflections();
-});
 
-nextScenarioBtn.addEventListener("click", loadScenario);
+  const totalChildren = profiles.length;
+  let totalAttempts = 0;
+  let totalCorrect = 0;
+  let totalMemoryAttempts = 0;
+  let totalMemoryCorrect = 0;
+  let totalChoresThisWeek = 0;
+  const weekKey = getWeekKey();
+
+  profiles.forEach((profile) => {
+    const progress = profileProgressMap[profile.id] || getDefaultProgress();
+    totalAttempts += progress.attempts;
+    totalCorrect += progress.correct;
+
+    const memoryStats = profileMemoryGameMap[profile.id] || getDefaultMemoryStats();
+    totalMemoryAttempts += memoryStats.attempts;
+    totalMemoryCorrect += memoryStats.correct;
+
+    const completionByWeek = profileChoreCompletionMap[profile.id] || {};
+    const weekCompletion = completionByWeek[weekKey] || {};
+    totalChoresThisWeek += Object.values(weekCompletion).filter(Boolean).length;
+  });
+
+  const overallAccuracy = totalAttempts ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
+  const memoryAccuracy = totalMemoryAttempts ? Math.round((totalMemoryCorrect / totalMemoryAttempts) * 100) : 0;
+
+  parentChildrenCount.textContent = String(totalChildren);
+  parentChallengesCount.textContent = String(totalAttempts);
+  parentAccuracy.textContent = `${overallAccuracy}%`;
+  parentChoresWeek.textContent = String(totalChoresThisWeek);
+  parentMemoryAccuracy.textContent = `${memoryAccuracy}%`;
+
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    parentActiveSummary.textContent = "";
+    return;
+  }
+
+  const activeProgress = profileProgressMap[activeProfile.id] || getDefaultProgress();
+  const activeChores = getProfileWeekCompletion(activeProfile.id);
+  const activeDone = Object.values(activeChores).filter(Boolean).length;
+  const agesText = activeProfile.ages && activeProfile.ages.length ? activeProfile.ages.join(", ") : "none";
+
+  parentActiveSummary.textContent = `${activeProfile.name} (ages ${agesText}) • ${activeProgress.correct}/${activeProgress.attempts} correct • ${activeDone}/${choreMappings.length} chores this week`;
+}
+
+if (reflectionForm && reflectionInput) {
+  reflectionForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const text = reflectionInput.value.trim();
+    if (!text) {
+      return;
+    }
+    saveReflection(text);
+    reflectionInput.value = "";
+    loadReflections();
+    renderParentDashboard();
+  });
+}
+
+if (nextScenarioBtn) {
+  nextScenarioBtn.addEventListener("click", loadScenario);
+}
 
 buildValueCards();
 setSpotlight();
 setValueOfWeek();
+initProfilesAndData();
+initProfileControls();
+setActiveProfile(activeProfileId, { refreshScenario: false });
 initMemoryVerseMode();
-setProgress(getProgress());
+setProgress(getActiveProgress());
 loadScenario();
 initChoreMapping();
+renderChoreMappings();
 loadReflections();
+renderParentDashboard();
