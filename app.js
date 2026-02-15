@@ -1,45 +1,4 @@
-const values = [
-  {
-    name: "Integrity",
-    meaning: "Doing the right thing even when no one is watching.",
-    example: "Telling the truth after breaking something."
-  },
-  {
-    name: "Perseverance",
-    meaning: "Keeping at something hard without giving up quickly.",
-    example: "Practicing piano even when a song feels difficult."
-  },
-  {
-    name: "Intellectual Humility",
-    meaning: "Being open to learning and admitting when we are wrong.",
-    example: "Saying, 'I may be mistaken, can you explain?'"
-  },
-  {
-    name: "Stewardship",
-    meaning: "Taking care of what we have and using it wisely.",
-    example: "Turning off lights and caring for shared spaces."
-  },
-  {
-    name: "Respect",
-    meaning: "Treating people with kindness and dignity.",
-    example: "Listening when someone else is speaking."
-  },
-  {
-    name: "Gratitude",
-    meaning: "Noticing and appreciating blessings and help from others.",
-    example: "Thanking someone for a small act of kindness."
-  },
-  {
-    name: "Faith",
-    meaning: "Trusting God and living according to what we believe.",
-    example: "Praying together when we are uncertain."
-  },
-  {
-    name: "Family",
-    meaning: "Putting our relationships and responsibilities at home first.",
-    example: "Helping with chores before starting screen time."
-  }
-];
+const values = Array.isArray(window.CORE_VALUES) ? window.CORE_VALUES : [];
 
 const scenarios = [
   {
@@ -124,6 +83,13 @@ const reflectionList = document.getElementById("reflection-list");
 
 let currentScenario = null;
 
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
 function loadJSON(key, fallback) {
   try {
     const raw = localStorage.getItem(key);
@@ -154,36 +120,54 @@ function setProgress(progress) {
 }
 
 function buildValueCards() {
+  if (!valueGrid || !cardTemplate) {
+    return;
+  }
+
+  if (!values.length) {
+    valueGrid.innerHTML = "<p>No core values are configured yet.</p>";
+    return;
+  }
+
   values.forEach((value, index) => {
     const fragment = cardTemplate.content.cloneNode(true);
     const card = fragment.querySelector(".value-card");
-    const toggle = fragment.querySelector(".value-card__toggle");
-    const details = fragment.querySelector(".value-card__details");
-    const badge = value.name
+    const link = fragment.querySelector(".value-card__link");
+    const badge = fragment.querySelector(".value-card__badge");
+    const name = fragment.querySelector(".value-card__name");
+    const summary = fragment.querySelector(".value-card__summary");
+
+    const initials = value.name
       .split(" ")
       .map((word) => word[0])
       .join("")
       .slice(0, 2)
       .toUpperCase();
 
-    card.classList.add(`value-card--tone-${(index % values.length) + 1}`);
+    const tone = `value-card--tone-${(index % values.length) + 1}`;
+    const slug = value.slug || slugify(value.name);
 
-    toggle.innerHTML = `<span class="value-card__badge">${badge}</span><span class="value-card__name">${value.name}</span><span class="value-card__plus" aria-hidden="true">+</span>`;
-    details.innerHTML = `<p><strong>Meaning:</strong> ${value.meaning}</p><p><strong>At home:</strong> ${value.example}</p>`;
-
-    toggle.addEventListener("click", () => {
-      card.classList.toggle("is-open");
-    });
+    card.classList.add(tone);
+    link.href = `value.html?value=${encodeURIComponent(slug)}`;
+    badge.textContent = initials;
+    name.textContent = value.name;
+    summary.textContent = value.meaning;
 
     valueGrid.appendChild(fragment);
   });
 }
 
 function setSpotlight() {
+  if (!values.length) {
+    spotlightValue.textContent = "No Value Selected";
+    spotlightMessage.textContent = "Add values to show a daily spotlight.";
+    return;
+  }
+
   const dayIndex = new Date().getDate() % values.length;
   const choice = values[dayIndex];
   spotlightValue.textContent = choice.name;
-  spotlightMessage.textContent = `Challenge: practice ${choice.name.toLowerCase()} in one specific moment today.`;
+  spotlightMessage.textContent = `Today: ${choice.challenge}`;
 }
 
 function pickScenario() {

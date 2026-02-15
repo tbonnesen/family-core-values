@@ -309,27 +309,31 @@ h2 {
   transform: translateY(-2px) rotate(-0.4deg);
 }
 
-.value-card__toggle {
+.value-card__link {
   width: 100%;
-  border: 0;
+  text-decoration: none;
   display: grid;
-  grid-template-columns: 38px 1fr 16px;
-  align-items: center;
+  grid-template-columns: 38px 1fr auto;
+  grid-template-areas:
+    "badge name cta"
+    ". summary cta";
+  align-items: start;
   gap: 0.5rem;
-  padding: 0.72rem 0.84rem;
+  padding: 0.8rem 0.86rem;
   text-align: left;
   background: linear-gradient(180deg, #192b4a, #172640);
   color: var(--page-ink);
   cursor: pointer;
 }
 
-.value-card__toggle:hover,
-.value-card__toggle:focus-visible {
+.value-card__link:hover,
+.value-card__link:focus-visible {
   outline: none;
   background: #1d3154;
 }
 
 .value-card__badge {
+  grid-area: badge;
   width: 32px;
   height: 32px;
   border-radius: 999px;
@@ -342,51 +346,164 @@ h2 {
 }
 
 .value-card__name {
+  grid-area: name;
   font-weight: 900;
   font-size: 1.02rem;
+  line-height: 1.1;
 }
 
-.value-card__plus {
-  font-size: 1.22rem;
+.value-card__summary {
+  grid-area: summary;
+  margin: 0;
+  color: #cad8f7;
+  font-weight: 700;
+  font-size: 0.92rem;
+}
+
+.value-card__cta {
+  grid-area: cta;
+  align-self: center;
+  font-size: 0.88rem;
   font-weight: 900;
-  color: #a7badf;
+  color: #d7e3ff;
+  background: rgba(110, 145, 220, 0.22);
+  border: 1px solid rgba(145, 172, 237, 0.34);
+  border-radius: 999px;
+  padding: 0.22rem 0.58rem;
   line-height: 1;
-  transition: transform 0.15s ease;
 }
 
-.value-card.is-open .value-card__plus {
-  transform: rotate(45deg);
+.value-detail-group {
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+  border-top: 1px dashed rgba(169, 191, 239, 0.25);
 }
 
-.value-card__details {
-  max-height: 0;
-  overflow: hidden;
-  padding: 0 0.86rem;
-  color: #afc0e1;
-  transition: max-height 0.23s ease, padding 0.23s ease;
-}
-
-.value-card__details p {
-  margin: 0.48rem 0;
-}
-
-.value-card__details strong {
+.value-detail-group h3 {
+  margin: 0;
+  font-family: "Baloo 2", "Trebuchet MS", sans-serif;
+  font-size: 1.04rem;
   color: #e7f0ff;
 }
 
-.value-card.is-open .value-card__details {
-  max-height: 200px;
-  padding: 0.05rem 0.86rem 0.84rem;
+.value-detail-group p {
+  margin: 0.35rem 0 0;
 }
 
-.value-card--tone-1 .value-card__badge { background: linear-gradient(135deg, #ff7e59, #ffac69); }
-.value-card--tone-2 .value-card__badge { background: linear-gradient(135deg, #4f81ff, #7fa0ff); }
-.value-card--tone-3 .value-card__badge { background: linear-gradient(135deg, #22b9a0, #66dbbf); }
-.value-card--tone-4 .value-card__badge { background: linear-gradient(135deg, #f0b443, #f7ce72); }
-.value-card--tone-5 .value-card__badge { background: linear-gradient(135deg, #ff6b9f, #ff9bbf); }
-.value-card--tone-6 .value-card__badge { background: linear-gradient(135deg, #7f5cff, #a490ff); }
-.value-card--tone-7 .value-card__badge { background: linear-gradient(135deg, #16ab84, #5fd8b7); }
-.value-card--tone-8 .value-card__badge { background: linear-gradient(135deg, #ff8558, #f9b149); }
+.value-detail-group ul {
+  margin: 0.34rem 0 0;
+  padding-left: 1.05rem;
+}
+
+.value-detail-group li {
+  margin-bottom: 0.26rem;
+}
+
+.value-scripture {
+  background: linear-gradient(180deg, rgba(120, 150, 220, 0.12), rgba(120, 150, 220, 0.04));
+  border: 1px solid rgba(162, 184, 236, 0.24);
+  border-radius: 12px;
+  padding: 0.5rem 0.58rem;
+}
+
+.value-scripture .scripture-ref {
+  margin: 0.3rem 0 0;
+  font-weight: 800;
+  color: #c5d7ff;
+}
+
+.value-scripture .scripture-text {
+  margin: 0.3rem 0 0;
+  font-style: italic;
+  color: #e4eeff;
+}
+
+.value-card--tone-1 .value-card__badge, .value-tone-1 { background: linear-gradient(135deg, #ff7e59, #ffac69); }
+.value-card--tone-2 .value-card__badge, .value-tone-2 { background: linear-gradient(135deg, #4f81ff, #7fa0ff); }
+.value-card--tone-3 .value-card__badge, .value-tone-3 { background: linear-gradient(135deg, #22b9a0, #66dbbf); }
+.value-card--tone-4 .value-card__badge, .value-tone-4 { background: linear-gradient(135deg, #f0b443, #f7ce72); }
+.value-card--tone-5 .value-card__badge, .value-tone-5 { background: linear-gradient(135deg, #ff6b9f, #ff9bbf); }
+.value-card--tone-6 .value-card__badge, .value-tone-6 { background: linear-gradient(135deg, #7f5cff, #a490ff); }
+.value-card--tone-7 .value-card__badge, .value-tone-7 { background: linear-gradient(135deg, #16ab84, #5fd8b7); }
+.value-card--tone-8 .value-card__badge, .value-tone-8 { background: linear-gradient(135deg, #ff8558, #f9b149); }
+
+.detail-layout {
+  width: min(1180px, 94vw);
+  margin: 0.95rem auto 2rem;
+  display: grid;
+  grid-template-columns: 8fr 4fr;
+  gap: 0.9rem;
+}
+
+.detail-back {
+  display: inline-block;
+  margin-top: 0.82rem;
+}
+
+.value-focus-card {
+  min-height: 520px;
+}
+
+.value-focus-header {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.value-focus-header .eyebrow {
+  margin-bottom: 0.1rem;
+}
+
+.value-focus-header h2 {
+  margin: 0;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+}
+
+.value-focus-meaning {
+  margin: 0.75rem 0 0;
+  color: #d6e4ff;
+  font-size: 1.08rem;
+  font-weight: 700;
+}
+
+.value-focus-grid {
+  margin-top: 0.7rem;
+}
+
+.value-focus-grid .value-detail-group ul {
+  color: #bed0f3;
+}
+
+.other-values-card h2 {
+  margin-bottom: 0.72rem;
+}
+
+.other-values-list {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.other-value-link {
+  text-decoration: none;
+  color: #d6e4ff;
+  background: linear-gradient(180deg, #192b4a, #172640);
+  border: 1px solid rgba(160, 185, 245, 0.28);
+  border-radius: 12px;
+  padding: 0.54rem 0.64rem;
+  font-weight: 700;
+}
+
+.other-value-link:hover,
+.other-value-link:focus-visible {
+  outline: none;
+  border-color: #8aaeff;
+  background: #20345a;
+}
+
+.other-value-link.is-active {
+  border-color: rgba(254, 198, 106, 0.8);
+  box-shadow: 0 0 0 1px rgba(254, 198, 106, 0.5) inset;
+}
 
 .scenario-text {
   margin: 0;
@@ -515,6 +632,10 @@ input[type="text"]:focus-visible {
     grid-template-columns: repeat(6, minmax(0, 1fr));
   }
 
+  .detail-layout {
+    grid-template-columns: 1fr;
+  }
+
   .panel--spotlight,
   .panel--progress,
   .panel--challenge,
@@ -551,6 +672,11 @@ input[type="text"]:focus-visible {
     grid-template-columns: 1fr;
   }
 
+  .detail-layout {
+    width: 95vw;
+    grid-template-columns: 1fr;
+  }
+
   .panel--spotlight,
   .panel--progress,
   .panel--challenge,
@@ -566,5 +692,17 @@ input[type="text"]:focus-visible {
 
   .value-grid {
     grid-template-columns: 1fr;
+  }
+
+  .value-card__link {
+    grid-template-columns: 38px 1fr;
+    grid-template-areas:
+      "badge name"
+      ". summary"
+      ". cta";
+  }
+
+  .value-card__cta {
+    justify-self: start;
   }
 }

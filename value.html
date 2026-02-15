@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Core Value</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="value-detail-page">
+    <header class="hero">
+      <div class="hero__content">
+        <p class="eyebrow">Family Core Values</p>
+        <h1>Value Deep Dive</h1>
+        <p class="intro">Read, discuss, and practice one core value as a family.</p>
+        <a href="index.html" class="btn detail-back">Back to Dashboard</a>
+      </div>
+      <div class="hero__sparkles" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </header>
+
+    <main class="detail-layout">
+      <article class="panel value-focus-card" aria-labelledby="value-title">
+        <div class="value-focus-header">
+          <span id="value-badge" class="value-card__badge"></span>
+          <div>
+            <p class="eyebrow">Core Value</p>
+            <h2 id="value-title"></h2>
+          </div>
+        </div>
+
+        <p id="value-meaning" class="value-focus-meaning"></p>
+
+        <div class="value-focus-grid">
+          <section class="value-detail-group">
+            <h3>Why It Matters</h3>
+            <p id="value-why"></p>
+          </section>
+          <section class="value-detail-group">
+            <h3>Looks Like</h3>
+            <ul id="value-looks-like"></ul>
+          </section>
+          <section class="value-detail-group">
+            <h3>Watch Out For</h3>
+            <ul id="value-not-like"></ul>
+          </section>
+          <section class="value-detail-group">
+            <h3>Try This Today</h3>
+            <p id="value-challenge"></p>
+          </section>
+          <section class="value-detail-group value-scripture">
+            <h3>KJV Scripture</h3>
+            <p id="value-verse-ref" class="scripture-ref"></p>
+            <p id="value-verse-text" class="scripture-text"></p>
+          </section>
+          <section class="value-detail-group">
+            <h3>Talk About It</h3>
+            <p id="value-question"></p>
+          </section>
+        </div>
+      </article>
+
+      <aside class="panel other-values-card" aria-labelledby="other-values-title">
+        <h2 id="other-values-title">Explore Other Values</h2>
+        <div id="other-values" class="other-values-list"></div>
+      </aside>
+    </main>
+
+    <script src="values-data.js"></script>
+    <script src="value.js"></script>
+  </body>
+</html>

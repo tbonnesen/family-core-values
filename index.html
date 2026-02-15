@@ -44,7 +44,7 @@
 
       <section class="panel panel--values" aria-labelledby="values-title">
         <h2 id="values-title">Our Values</h2>
-        <p class="hint">Tap a card to see what it looks like in daily life.</p>
+        <p class="hint">Tap a card to open a full page for that core value.</p>
         <div id="value-grid" class="value-grid"></div>
       </section>
 
@@ -75,11 +75,16 @@
 
     <template id="value-card-template">
       <article class="value-card">
-        <button class="value-card__toggle" type="button"></button>
-        <div class="value-card__details"></div>
+        <a class="value-card__link" href="#">
+          <span class="value-card__badge"></span>
+          <span class="value-card__name"></span>
+          <span class="value-card__summary"></span>
+          <span class="value-card__cta">Open</span>
+        </a>
       </article>
     </template>
 
+    <script src="values-data.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
