@@ -6,6 +6,7 @@
     SCENARIO: "fcv_last_scenario_v1",
     CHORE_MAP: "fcv_chore_mappings_v1",
     PARENT_PROFILE: "fcv_parent_profile_v1",
+    DASHBOARD_FILTER_PROFILE: "fcv_dashboard_filter_profile_v1",
     PROFILES: "fcv_profiles_v2",
     ACTIVE_PROFILE: "fcv_active_profile_v2",
     PROFILE_PROGRESS: "fcv_profile_progress_v2",

@@ -85,6 +85,41 @@ h3 {
   z-index: 2;
 }
 
+.hero__filter {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 3;
+  width: min(300px, 45vw);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(16, 30, 48, 0.66);
+  padding: 0.52rem 0.58rem;
+  backdrop-filter: blur(6px);
+}
+
+.hero__filter-label {
+  display: block;
+  margin: 0;
+  color: #cddaf0;
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.hero__filter-hint {
+  margin: 0.32rem 0 0;
+  color: #c1d0e8;
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-height: 1.1rem;
+}
+
+.hero__filter select {
+  margin-top: 0.3rem;
+}
+
 .eyebrow {
   margin: 0;
   text-transform: uppercase;
@@ -709,15 +744,55 @@ h3 {
 
 .profile-list {
   margin-top: 0.62rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.34rem;
+  display: grid;
+  gap: 0.38rem;
 }
 
 .parent-profile-form {
   margin-top: 0.58rem;
   display: grid;
   gap: 0.5rem;
+}
+
+.profile-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.44rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(39, 56, 80, 0.78);
+  padding: 0.3rem 0.42rem;
+}
+
+.profile-item.is-active {
+  border-color: rgba(143, 181, 255, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(143, 181, 255, 0.44);
+}
+
+.profile-item__name {
+  border: 0;
+  background: transparent;
+  color: #dce7fb;
+  font: inherit;
+  font-size: 0.77rem;
+  font-weight: 700;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+
+.profile-item__name:hover,
+.profile-item__name:focus-visible {
+  outline: none;
+  text-decoration: underline;
+}
+
+.profile-icon-edit {
+  width: auto;
+  min-width: 128px;
+  padding: 0.3rem 0.42rem;
+  font-size: 0.78rem;
 }
 
 .profile-pill {
@@ -1135,6 +1210,7 @@ select:focus-visible {
 .other-value-link:focus-visible,
 .chore-value:focus-visible,
 .chore-chart-value:focus-visible,
+.profile-item__name:focus-visible,
 .chore-complete:focus-visible,
 .chore-remove:focus-visible,
 .choice-btn:focus-visible,
@@ -1310,6 +1386,15 @@ select:focus-visible {
   .profile-age-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .profile-item {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .profile-icon-edit {
+    width: 100%;
+  }
 }
 
 @media (max-width: 760px) {
@@ -1317,6 +1402,12 @@ select:focus-visible {
     width: 95vw;
     padding: 1.15rem 0.92rem;
     border-radius: 22px;
+  }
+
+  .hero__filter {
+    position: static;
+    margin-top: 0.72rem;
+    width: 100%;
   }
 
   h1 {

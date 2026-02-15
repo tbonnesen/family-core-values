@@ -21,6 +21,11 @@
           Practice one value at a time with stories, choices, and reflections.
         </p>
       </div>
+      <div class="hero__filter">
+        <label class="hero__filter-label" for="dashboard-profile-filter">Dashboard Filter</label>
+        <select id="dashboard-profile-filter" aria-label="Filter dashboard by child profile"></select>
+        <p id="dashboard-age-hint" class="hero__filter-hint"></p>
+      </div>
       <div class="hero__sparkles" aria-hidden="true">
         <span></span><span></span><span></span>
       </div>
@@ -43,38 +48,18 @@
         </div>
       </section>
 
-      <section class="panel panel--profiles" aria-labelledby="profiles-title">
-        <h2 id="profiles-title">Child Profiles</h2>
-        <form id="profile-form" class="profile-form">
-          <input
-            id="profile-name-input"
-            type="text"
-            maxlength="36"
-            placeholder="Add child name"
-            required
-          />
-          <select id="profile-icon-input" aria-label="Icon for new child profile" required></select>
-          <button class="btn btn--small" type="submit">Add Child</button>
-        </form>
-        <label class="field-label" for="profile-select">Active Child</label>
-        <select id="profile-select" required></select>
-        <label class="field-label" for="profile-icon-select">Profile Icon</label>
-        <select id="profile-icon-select" required></select>
-        <p class="field-label">Applicable Ages</p>
-        <div id="profile-age-grid" class="profile-age-grid"></div>
-        <div class="profile-actions">
-          <button id="profile-age-save" class="btn btn--small btn--alt" type="button">Save Ages</button>
-          <button id="profile-remove" class="btn btn--small btn--danger" type="button">Remove Active Child</button>
-        </div>
-        <div id="profile-list" class="profile-list"></div>
-      </section>
-
       <section class="panel panel--weekly" aria-labelledby="weekly-title">
         <h2 id="weekly-title">Value Of The Week</h2>
         <p id="weekly-label" class="panel-meta"></p>
         <p id="weekly-value" class="spotlight-value"></p>
         <p id="weekly-message" class="spotlight-message"></p>
         <a id="weekly-link" class="panel-link" href="value.html">Open Value Page</a>
+      </section>
+
+      <section class="panel panel--chorechart" aria-labelledby="chorechart-title">
+        <h2 id="chorechart-title">Chore Chart</h2>
+        <p class="spotlight-message">Open a full chart that groups assigned chores by child profile.</p>
+        <a class="btn chore-chart-link" href="chore-chart.html">Open Chore Chart</a>
       </section>
 
       <section class="panel panel--memory" aria-labelledby="memory-title">
@@ -139,12 +124,6 @@
         <ul id="chore-list" class="chore-list"></ul>
       </section>
 
-      <section class="panel panel--chorechart" aria-labelledby="chorechart-title">
-        <h2 id="chorechart-title">Chore Chart</h2>
-        <p class="spotlight-message">Open a full chart that groups assigned chores by child profile.</p>
-        <a class="btn chore-chart-link" href="chore-chart.html">Open Chore Chart</a>
-      </section>
-
       <section class="panel panel--reflection" aria-labelledby="reflection-title">
         <h2 id="reflection-title">Family Reflection</h2>
         <p class="hint">What value did you see someone live out today?</p>
@@ -197,6 +176,32 @@
           </div>
         </div>
         <p id="parent-active-summary" class="spotlight-message"></p>
+      </section>
+
+      <section class="panel panel--profiles" aria-labelledby="profiles-title">
+        <h2 id="profiles-title">Child Profiles</h2>
+        <form id="profile-form" class="profile-form">
+          <input
+            id="profile-name-input"
+            type="text"
+            maxlength="36"
+            placeholder="Add child name"
+            required
+          />
+          <select id="profile-icon-input" aria-label="Icon for new child profile" required></select>
+          <button class="btn btn--small" type="submit">Add Child</button>
+        </form>
+        <label class="field-label" for="profile-select">Active Child</label>
+        <select id="profile-select" required></select>
+        <label class="field-label" for="profile-icon-select">Profile Icon</label>
+        <select id="profile-icon-select" required></select>
+        <p class="field-label">Applicable Ages</p>
+        <div id="profile-age-grid" class="profile-age-grid"></div>
+        <div class="profile-actions">
+          <button id="profile-age-save" class="btn btn--small btn--alt" type="button">Save Ages</button>
+          <button id="profile-remove" class="btn btn--small btn--danger" type="button">Remove Active Child</button>
+        </div>
+        <div id="profile-list" class="profile-list"></div>
       </section>
     </main>
 

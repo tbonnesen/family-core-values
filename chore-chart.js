@@ -15,7 +15,21 @@ const PROFILE_ICON_GLYPHS = {
   paint: "\u{1F3A8}",
   book: "\u{1F4DA}",
   music: "\u{1F3B5}",
-  sparkles: "\u2728"
+  sparkles: "\u2728",
+  crown: "\u{1F451}",
+  robot: "\u{1F916}",
+  plane: "\u2708",
+  puzzle: "\u{1F9E9}",
+  gamepad: "\u{1F3AE}",
+  globe: "\u{1F30D}",
+  camera: "\u{1F4F7}",
+  heart: "\u{1F496}",
+  rainbow: "\u{1F308}",
+  car: "\u{1F697}",
+  guitar: "\u{1F3B8}",
+  planet: "\u{1FA90}",
+  butterfly: "\u{1F98B}",
+  dragon: "\u{1F409}"
 };
 
 const weekLabel = document.getElementById("chore-chart-week");

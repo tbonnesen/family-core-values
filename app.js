@@ -13,7 +13,21 @@ const PROFILE_ICON_OPTIONS = [
   { id: "paint", label: "Paint", glyph: "\u{1F3A8}" },
   { id: "book", label: "Book", glyph: "\u{1F4DA}" },
   { id: "music", label: "Music", glyph: "\u{1F3B5}" },
-  { id: "sparkles", label: "Sparkles", glyph: "\u2728" }
+  { id: "sparkles", label: "Sparkles", glyph: "\u2728" },
+  { id: "crown", label: "Crown", glyph: "\u{1F451}" },
+  { id: "robot", label: "Robot", glyph: "\u{1F916}" },
+  { id: "plane", label: "Plane", glyph: "\u2708" },
+  { id: "puzzle", label: "Puzzle", glyph: "\u{1F9E9}" },
+  { id: "gamepad", label: "Gamepad", glyph: "\u{1F3AE}" },
+  { id: "globe", label: "Globe", glyph: "\u{1F30D}" },
+  { id: "camera", label: "Camera", glyph: "\u{1F4F7}" },
+  { id: "heart", label: "Heart", glyph: "\u{1F496}" },
+  { id: "rainbow", label: "Rainbow", glyph: "\u{1F308}" },
+  { id: "car", label: "Car", glyph: "\u{1F697}" },
+  { id: "guitar", label: "Guitar", glyph: "\u{1F3B8}" },
+  { id: "planet", label: "Planet", glyph: "\u{1FA90}" },
+  { id: "butterfly", label: "Butterfly", glyph: "\u{1F98B}" },
+  { id: "dragon", label: "Dragon", glyph: "\u{1F409}" }
 ];
 
 const scenarios = [
@@ -160,6 +174,7 @@ const STORAGE = fcv.STORAGE || {
   SCENARIO: "fcv_last_scenario_v1",
   CHORE_MAP: "fcv_chore_mappings_v1",
   PARENT_PROFILE: "fcv_parent_profile_v1",
+  DASHBOARD_FILTER_PROFILE: "fcv_dashboard_filter_profile_v1",
   PROFILES: "fcv_profiles_v2",
   ACTIVE_PROFILE: "fcv_active_profile_v2",
   PROFILE_PROGRESS: "fcv_profile_progress_v2",
@@ -197,6 +212,8 @@ const scenarioText = document.getElementById("scenario-text");
 const choicesContainer = document.getElementById("choices");
 const scenarioResult = document.getElementById("scenario-result");
 const nextScenarioBtn = document.getElementById("next-scenario");
+const dashboardProfileFilter = document.getElementById("dashboard-profile-filter");
+const dashboardAgeHint = document.getElementById("dashboard-age-hint");
 
 const activeChildLabel = document.getElementById("active-child-label");
 const attemptsCount = document.getElementById("attempts-count");
@@ -233,9 +250,14 @@ const choreList = document.getElementById("chore-list");
 const reflectionForm = document.getElementById("reflection-form");
 const reflectionInput = document.getElementById("reflection-input");
 const reflectionList = document.getElementById("reflection-list");
+const panelParent = document.querySelector(".panel--parent");
+const panelChallenge = document.querySelector(".panel--challenge");
+const memoryGamePanel = document.querySelector(".memory-game");
 
 let profiles = [];
 let activeProfileId = null;
+let dashboardFilterProfileId = "all";
+let dashboardFilterControlsBound = false;
 let parentProfile = { name: "Parent" };
 let profileProgressMap = {};
 let profileReflectionMap = {};
@@ -426,6 +448,97 @@ function createProfile(name = "Child 1", ages = [5], icon = PROFILE_ICON_OPTIONS
   };
 }
 
+function resolveDashboardFilterProfileId(candidate) {
+  if (candidate === "all") {
+    return "all";
+  }
+  return profiles.some((profile) => profile.id === candidate) ? candidate : "all";
+}
+
+function getDashboardFilterProfile() {
+  if (dashboardFilterProfileId === "all") {
+    return null;
+  }
+  return profiles.find((profile) => profile.id === dashboardFilterProfileId) || null;
+}
+
+function getProfilePrimaryAge(profile) {
+  if (!profile || !Array.isArray(profile.ages) || !profile.ages.length) {
+    return 7;
+  }
+  return Math.min(...profile.ages);
+}
+
+function persistDashboardFilterProfileId() {
+  safeSetItem(STORAGE.DASHBOARD_FILTER_PROFILE, dashboardFilterProfileId);
+}
+
+function renderDashboardFilterOptions() {
+  if (!dashboardProfileFilter) {
+    return;
+  }
+
+  dashboardProfileFilter.innerHTML = "";
+
+  const familyOption = document.createElement("option");
+  familyOption.value = "all";
+  familyOption.textContent = "Family View (All)";
+  dashboardProfileFilter.appendChild(familyOption);
+
+  profiles.forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name}`;
+    dashboardProfileFilter.appendChild(option);
+  });
+
+  dashboardProfileFilter.value = resolveDashboardFilterProfileId(dashboardFilterProfileId);
+}
+
+function applyDashboardAgeFilter() {
+  const filteredProfile = getDashboardFilterProfile();
+  const primaryAge = getProfilePrimaryAge(filteredProfile);
+  const childMode = Boolean(filteredProfile);
+
+  if (panelParent) {
+    panelParent.hidden = childMode;
+  }
+
+  const hideComplex = childMode && primaryAge <= 3;
+  if (panelChallenge) {
+    panelChallenge.hidden = hideComplex;
+  }
+  if (memoryGamePanel) {
+    memoryGamePanel.hidden = hideComplex;
+  }
+
+  if (dashboardAgeHint) {
+    if (!filteredProfile) {
+      dashboardAgeHint.textContent = "Showing complete family dashboard.";
+    } else if (primaryAge <= 3) {
+      dashboardAgeHint.textContent = `${filteredProfile.name}: simplified for ages 1-3.`;
+    } else if (primaryAge <= 5) {
+      dashboardAgeHint.textContent = `${filteredProfile.name}: balanced for ages 4-5.`;
+    } else {
+      dashboardAgeHint.textContent = `${filteredProfile.name}: full learner mode for ages 6-7.`;
+    }
+  }
+}
+
+function setDashboardFilterProfile(profileId, options = {}) {
+  const { syncActiveProfile = true, refreshScenario = false } = options;
+  dashboardFilterProfileId = resolveDashboardFilterProfileId(profileId);
+  persistDashboardFilterProfileId();
+  renderDashboardFilterOptions();
+
+  if (syncActiveProfile && dashboardFilterProfileId !== "all") {
+    setActiveProfile(dashboardFilterProfileId, { refreshScenario });
+    return;
+  }
+
+  applyDashboardAgeFilter();
+}
+
 function getDefaultParentProfile() {
   return {
     name: "Parent"
@@ -531,6 +644,9 @@ function initProfilesAndData() {
     ? storedActiveProfile
     : profiles[0].id;
 
+  const storedDashboardFilter = safeGetItem(STORAGE.DASHBOARD_FILTER_PROFILE) || "all";
+  dashboardFilterProfileId = resolveDashboardFilterProfileId(storedDashboardFilter);
+
   saveJSON(STORAGE.PROFILES, profiles);
   saveProfileDataMaps();
   safeSetItem(STORAGE.ACTIVE_PROFILE, activeProfileId);
@@ -564,6 +680,11 @@ function removeActiveProfile() {
 
   profiles = profiles.filter((profile) => profile.id !== removedId);
   choreMappings = choreMappings.filter((mapping) => mapping.assignedProfileId !== removedId);
+
+  if (dashboardFilterProfileId === removedId) {
+    dashboardFilterProfileId = fallbackProfile.id;
+    persistDashboardFilterProfileId();
+  }
 
   delete profileProgressMap[removedId];
   delete profileReflectionMap[removedId];
@@ -601,7 +722,14 @@ function setActiveProfile(profileId, options = {}) {
   renderProfileIconSelect();
   renderProfileAgeGrid();
   renderProfileList();
+  renderDashboardFilterOptions();
   populateChoreProfileSelect();
+
+  if (dashboardFilterProfileId !== "all" && dashboardFilterProfileId !== profileId) {
+    dashboardFilterProfileId = resolveDashboardFilterProfileId(profileId);
+    persistDashboardFilterProfileId();
+    renderDashboardFilterOptions();
+  }
 
   const activeProfile = getActiveProfile();
   activeChildLabel.textContent = activeProfile ? `Viewing: ${activeProfile.name}` : "";
@@ -612,6 +740,7 @@ function setActiveProfile(profileId, options = {}) {
   renderMemoryGameScore();
   renderChoreMappings();
   renderParentDashboard();
+  applyDashboardAgeFilter();
 
   if (refreshScenario) {
     loadScenario();
@@ -702,15 +831,28 @@ function renderProfileList() {
   profileList.innerHTML = "";
 
   profiles.forEach((profile) => {
-    const badge = document.createElement("span");
-    badge.className = "profile-pill";
+    const item = document.createElement("div");
+    item.className = "profile-item";
     if (profile.id === activeProfileId) {
-      badge.classList.add("is-active");
+      item.classList.add("is-active");
     }
 
     const ages = profile.ages && profile.ages.length ? profile.ages.join(",") : "none";
-    badge.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name} • ages ${ages}`;
-    profileList.appendChild(badge);
+    const focusBtn = document.createElement("button");
+    focusBtn.type = "button";
+    focusBtn.className = "profile-item__name";
+    focusBtn.dataset.profileFocusId = profile.id;
+    focusBtn.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name} • ages ${ages}`;
+
+    const iconSelect = document.createElement("select");
+    iconSelect.className = "profile-icon-edit";
+    iconSelect.dataset.profileIconId = profile.id;
+    iconSelect.setAttribute("aria-label", `Choose icon for ${profile.name}`);
+    populateIconSelect(iconSelect, profile.icon);
+
+    item.appendChild(focusBtn);
+    item.appendChild(iconSelect);
+    profileList.appendChild(item);
   });
 
   if (profileRemoveBtn) {
@@ -779,6 +921,59 @@ function initProfileControls() {
   profileRemoveBtn.addEventListener("click", () => {
     removeActiveProfile();
   });
+
+  profileList.addEventListener("click", (event) => {
+    const focusBtn = event.target.closest("button.profile-item__name");
+    if (!focusBtn) {
+      return;
+    }
+    const { profileFocusId } = focusBtn.dataset;
+    if (!profileFocusId) {
+      return;
+    }
+    setActiveProfile(profileFocusId);
+  });
+
+  profileList.addEventListener("change", (event) => {
+    const iconSelect = event.target.closest("select.profile-icon-edit");
+    if (!iconSelect) {
+      return;
+    }
+
+    const { profileIconId } = iconSelect.dataset;
+    const profile = profiles.find((item) => item.id === profileIconId);
+    if (!profile) {
+      return;
+    }
+
+    profile.icon = getProfileIconOption(iconSelect.value).id;
+    saveJSON(STORAGE.PROFILES, profiles);
+
+    renderProfileSelect();
+    renderProfileIconSelect();
+    renderProfileList();
+    populateChoreProfileSelect();
+    renderParentDashboard();
+  });
+}
+
+function initDashboardFilterControls() {
+  if (!dashboardProfileFilter) {
+    return;
+  }
+
+  renderDashboardFilterOptions();
+  applyDashboardAgeFilter();
+
+  if (!dashboardFilterControlsBound) {
+    dashboardProfileFilter.addEventListener("change", () => {
+      setDashboardFilterProfile(dashboardProfileFilter.value, {
+        syncActiveProfile: true,
+        refreshScenario: false
+      });
+    });
+    dashboardFilterControlsBound = true;
+  }
 }
 
 function initParentProfileControls() {
@@ -1631,7 +1826,12 @@ function startDashboardApp() {
   initProfilesAndData();
   initParentProfileControls();
   initProfileControls();
-  setActiveProfile(activeProfileId, { refreshScenario: false });
+  initDashboardFilterControls();
+  if (dashboardFilterProfileId !== "all") {
+    setActiveProfile(dashboardFilterProfileId, { refreshScenario: false });
+  } else {
+    setActiveProfile(activeProfileId, { refreshScenario: false });
+  }
   initMemoryVerseMode();
   setProgress(getActiveProgress());
   loadScenario();
@@ -1644,7 +1844,12 @@ function startDashboardApp() {
 function refreshDashboardFromSharedState() {
   initProfilesAndData();
   choreMappings = loadChoreMappings();
-  setActiveProfile(activeProfileId, { refreshScenario: false });
+  initDashboardFilterControls();
+  if (dashboardFilterProfileId !== "all") {
+    setActiveProfile(dashboardFilterProfileId, { refreshScenario: false });
+  } else {
+    setActiveProfile(activeProfileId, { refreshScenario: false });
+  }
   renderChoreMappings();
   loadReflections();
   renderParentDashboard();
