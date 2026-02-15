@@ -1,0 +1,57 @@
+# Family Core Values App Architecture
+
+## Goals
+- Keep the app static and local-network friendly (no backend required).
+- Keep features consistent across pages by centralizing shared logic.
+- Preserve fast iteration for family content and UI updates.
+
+## Architecture Overview
+- `values-data.js`
+  - Content layer (core values, meanings, verses, age examples).
+- `fcv-core.js`
+  - Shared platform layer:
+    - Storage keys
+    - Safe localStorage access
+    - JSON load/save helpers
+    - Date/week/quarter helpers
+    - Value lookup and tone mapping
+    - Profile and chore normalization
+- `app.js`
+  - Dashboard feature layer:
+    - Profiles
+    - Parent dashboard
+    - Scenario challenges
+    - Verse memory mode + games
+    - Chore assignment/mapping + completion tracking
+    - Reflection journal
+- `value.js`
+  - Value detail page rendering.
+- `chore-chart.js`
+  - Chore chart page grouped by child profile.
+- `read-aloud.js`
+  - Accessibility/UX enhancement layer shared by all pages.
+
+## Data Contracts
+- Parent profile (`fcv_parent_profile_v1`)
+  - `{ name: string }`
+- Profiles (`fcv_profiles_v2`)
+  - `{ id: string, name: string, ages: number[], icon: string }`
+- Chore mappings (`fcv_chore_mappings_v1`)
+  - `{ id: string, chore: string, value: string, assignedProfileId: string }`
+- Profile chore completion (`fcv_profile_chore_completion_v2`)
+  - `{ [profileId]: { [weekKey]: { [choreId]: boolean } } }`
+
+All page scripts normalize loaded data via `fcv-core.js` before rendering.
+
+## UI Strategy
+- Shared visual system in `styles.css`.
+- Dedicated pages for complex flows:
+  - `index.html` for dashboard/quick actions
+  - `value.html` for single-value deep dives
+  - `chore-chart.html` for profile-grouped chores
+
+## Extension Rules
+- Add new shared utilities only in `fcv-core.js`.
+- Keep page scripts feature-focused and avoid duplicating helpers.
+- Reuse storage keys from `window.FCV.STORAGE` only.
+- Normalize persisted data before using it in render logic.

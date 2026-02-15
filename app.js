@@ -1,6 +1,20 @@
-const values = Array.isArray(window.CORE_VALUES) ? window.CORE_VALUES : [];
+const fcv = window.FCV || {};
+const values = typeof fcv.getValues === "function" ? fcv.getValues() : Array.isArray(window.CORE_VALUES) ? window.CORE_VALUES : [];
 
-const PROFILE_AGES = [1, 2, 3, 4, 5, 6, 7];
+const PROFILE_AGES =
+  Array.isArray(fcv.PROFILE_AGES_DEFAULT) && fcv.PROFILE_AGES_DEFAULT.length ? fcv.PROFILE_AGES_DEFAULT : [1, 2, 3, 4, 5, 6, 7];
+const PROFILE_ICON_OPTIONS = [
+  { id: "rocket", label: "Rocket", glyph: "\u{1F680}" },
+  { id: "star", label: "Star", glyph: "\u2B50" },
+  { id: "lion", label: "Lion", glyph: "\u{1F981}" },
+  { id: "fox", label: "Fox", glyph: "\u{1F98A}" },
+  { id: "dino", label: "Dinosaur", glyph: "\u{1F996}" },
+  { id: "soccer", label: "Soccer", glyph: "\u26BD" },
+  { id: "paint", label: "Paint", glyph: "\u{1F3A8}" },
+  { id: "book", label: "Book", glyph: "\u{1F4DA}" },
+  { id: "music", label: "Music", glyph: "\u{1F3B5}" },
+  { id: "sparkles", label: "Sparkles", glyph: "\u2728" }
+];
 
 const scenarios = [
   {
@@ -140,17 +154,19 @@ const DEFAULT_CHORE_MAPPINGS = [
   { chore: "Write one thank-you note", value: "Gratitude" }
 ];
 
-const STORAGE_PROGRESS_KEY = "fcv_progress_v1";
-const STORAGE_REFLECTION_KEY = "fcv_reflections_v1";
-const STORAGE_SCENARIO_KEY = "fcv_last_scenario_v1";
-const STORAGE_CHORE_MAP_KEY = "fcv_chore_mappings_v1";
-
-const STORAGE_PROFILES_KEY = "fcv_profiles_v2";
-const STORAGE_ACTIVE_PROFILE_KEY = "fcv_active_profile_v2";
-const STORAGE_PROFILE_PROGRESS_KEY = "fcv_profile_progress_v2";
-const STORAGE_PROFILE_REFLECTION_KEY = "fcv_profile_reflections_v2";
-const STORAGE_PROFILE_MEMORY_GAME_KEY = "fcv_profile_memory_game_v2";
-const STORAGE_PROFILE_CHORE_COMPLETION_KEY = "fcv_profile_chore_completion_v2";
+const STORAGE = fcv.STORAGE || {
+  PROGRESS: "fcv_progress_v1",
+  REFLECTION: "fcv_reflections_v1",
+  SCENARIO: "fcv_last_scenario_v1",
+  CHORE_MAP: "fcv_chore_mappings_v1",
+  PARENT_PROFILE: "fcv_parent_profile_v1",
+  PROFILES: "fcv_profiles_v2",
+  ACTIVE_PROFILE: "fcv_active_profile_v2",
+  PROFILE_PROGRESS: "fcv_profile_progress_v2",
+  PROFILE_REFLECTION: "fcv_profile_reflections_v2",
+  PROFILE_MEMORY_GAME: "fcv_profile_memory_game_v2",
+  PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2"
+};
 
 const valueGrid = document.getElementById("value-grid");
 const cardTemplate = document.getElementById("value-card-template");
@@ -189,11 +205,17 @@ const streakCount = document.getElementById("streak-count");
 
 const profileForm = document.getElementById("profile-form");
 const profileNameInput = document.getElementById("profile-name-input");
+const profileIconInput = document.getElementById("profile-icon-input");
 const profileSelect = document.getElementById("profile-select");
+const profileIconSelect = document.getElementById("profile-icon-select");
 const profileAgeGrid = document.getElementById("profile-age-grid");
 const profileAgeSaveBtn = document.getElementById("profile-age-save");
+const profileRemoveBtn = document.getElementById("profile-remove");
 const profileList = document.getElementById("profile-list");
 
+const parentNameDisplay = document.getElementById("parent-name-display");
+const parentProfileForm = document.getElementById("parent-profile-form");
+const parentNameInput = document.getElementById("parent-name-input");
 const parentChildrenCount = document.getElementById("parent-children-count");
 const parentChallengesCount = document.getElementById("parent-challenges-count");
 const parentAccuracy = document.getElementById("parent-accuracy");
@@ -205,6 +227,7 @@ const choreSummary = document.getElementById("chore-summary");
 const choreForm = document.getElementById("chore-form");
 const choreInput = document.getElementById("chore-input");
 const choreValueSelect = document.getElementById("chore-value-select");
+const choreProfileSelect = document.getElementById("chore-profile-select");
 const choreList = document.getElementById("chore-list");
 
 const reflectionForm = document.getElementById("reflection-form");
@@ -213,6 +236,7 @@ const reflectionList = document.getElementById("reflection-list");
 
 let profiles = [];
 let activeProfileId = null;
+let parentProfile = { name: "Parent" };
 let profileProgressMap = {};
 let profileReflectionMap = {};
 let profileMemoryGameMap = {};
@@ -224,7 +248,10 @@ let memoryVisible = false;
 let currentMemoryGame = null;
 
 function slugify(text) {
-  return text
+  if (typeof fcv.slugify === "function") {
+    return fcv.slugify(text);
+  }
+  return String(text || "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
@@ -235,6 +262,9 @@ function createId(prefix) {
 }
 
 function loadJSON(key, fallback) {
+  if (typeof fcv.loadJSON === "function") {
+    return fcv.loadJSON(key, fallback);
+  }
   try {
     const raw = localStorage.getItem(key);
     return raw ? JSON.parse(raw) : fallback;
@@ -244,14 +274,47 @@ function loadJSON(key, fallback) {
 }
 
 function saveJSON(key, data) {
+  if (typeof fcv.saveJSON === "function") {
+    fcv.saveJSON(key, data);
+    return;
+  }
   localStorage.setItem(key, JSON.stringify(data));
 }
 
+function safeGetItem(key) {
+  if (typeof fcv.safeGetItem === "function") {
+    return fcv.safeGetItem(key);
+  }
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeSetItem(key, value) {
+  if (typeof fcv.safeSetItem === "function") {
+    return fcv.safeSetItem(key, value);
+  }
+  try {
+    localStorage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function normalizeValue(value) {
+  if (typeof fcv.normalizeValue === "function") {
+    return fcv.normalizeValue(value);
+  }
   return value ? value.toLowerCase() : "";
 }
 
 function shuffle(array) {
+  if (typeof fcv.shuffle === "function") {
+    return fcv.shuffle(array);
+  }
   const copy = array.slice();
   for (let i = copy.length - 1; i > 0; i -= 1) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -261,10 +324,16 @@ function shuffle(array) {
 }
 
 function unique(array) {
+  if (typeof fcv.unique === "function") {
+    return fcv.unique(array);
+  }
   return Array.from(new Set(array));
 }
 
 function getQuarterInfo(date = new Date()) {
+  if (typeof fcv.getQuarterInfo === "function") {
+    return fcv.getQuarterInfo(date, memoryVersePool.length);
+  }
   const dayMs = 24 * 60 * 60 * 1000;
   const quarter = Math.floor(date.getMonth() / 3) + 1;
   const quarterStart = new Date(date.getFullYear(), (quarter - 1) * 3, 1);
@@ -280,6 +349,9 @@ function getQuarterInfo(date = new Date()) {
 }
 
 function getYearWeekIndex(date = new Date()) {
+  if (typeof fcv.getYearWeekIndex === "function") {
+    return fcv.getYearWeekIndex(date);
+  }
   const dayMs = 24 * 60 * 60 * 1000;
   const start = new Date(date.getFullYear(), 0, 1);
   const today = new Date(date.getFullYear(), date.getMonth(), date.getDate());
@@ -288,11 +360,17 @@ function getYearWeekIndex(date = new Date()) {
 }
 
 function getWeekKey(date = new Date()) {
+  if (typeof fcv.getWeekKey === "function") {
+    return fcv.getWeekKey(date);
+  }
   const weekIndex = getYearWeekIndex(date) + 1;
   return `${date.getFullYear()}-W${weekIndex}`;
 }
 
 function getValueByIdentifier(identifier) {
+  if (typeof fcv.getValueByIdentifier === "function") {
+    return fcv.getValueByIdentifier(identifier, values);
+  }
   const needle = normalizeValue(identifier);
   return values.find((item) => {
     const slug = item.slug || slugify(item.name);
@@ -301,6 +379,9 @@ function getValueByIdentifier(identifier) {
 }
 
 function getValueToneClass(identifier) {
+  if (typeof fcv.getValueToneClass === "function") {
+    return fcv.getValueToneClass(identifier, values);
+  }
   const value = getValueByIdentifier(identifier);
   if (!value) {
     return "";
@@ -326,12 +407,56 @@ function getDefaultMemoryStats() {
   };
 }
 
-function createProfile(name = "Child 1", ages = [5]) {
+function getProfileIconOption(iconId) {
+  return PROFILE_ICON_OPTIONS.find((icon) => icon.id === iconId) || PROFILE_ICON_OPTIONS[0];
+}
+
+function getProfileIconGlyph(iconId) {
+  const option = getProfileIconOption(iconId);
+  return option ? option.glyph : "\u2B50";
+}
+
+function createProfile(name = "Child 1", ages = [5], icon = PROFILE_ICON_OPTIONS[0].id) {
+  const safeIcon = getProfileIconOption(icon)?.id || PROFILE_ICON_OPTIONS[0].id;
   return {
     id: createId("child"),
     name,
-    ages: unique(ages).filter((age) => PROFILE_AGES.includes(age)).sort((a, b) => a - b)
+    ages: unique(ages).filter((age) => PROFILE_AGES.includes(age)).sort((a, b) => a - b),
+    icon: safeIcon
   };
+}
+
+function getDefaultParentProfile() {
+  return {
+    name: "Parent"
+  };
+}
+
+function sanitizeParentProfile(raw) {
+  const fallback = getDefaultParentProfile();
+  const name = typeof raw?.name === "string" ? raw.name.trim() : "";
+  return {
+    name: name || fallback.name
+  };
+}
+
+function saveParentProfile() {
+  saveJSON(STORAGE.PARENT_PROFILE, parentProfile);
+}
+
+function renderParentProfile() {
+  if (parentNameDisplay) {
+    parentNameDisplay.textContent = `Parent Profile: ${parentProfile.name}`;
+  }
+  if (parentNameInput) {
+    parentNameInput.value = parentProfile.name;
+  }
+}
+
+function initParentProfile() {
+  parentProfile = sanitizeParentProfile(loadJSON(STORAGE.PARENT_PROFILE, getDefaultParentProfile()));
+  saveParentProfile();
+  renderParentProfile();
 }
 
 function getActiveProfile() {
@@ -354,15 +479,15 @@ function ensureProfileData(profileId) {
 }
 
 function saveProfileDataMaps() {
-  saveJSON(STORAGE_PROFILE_PROGRESS_KEY, profileProgressMap);
-  saveJSON(STORAGE_PROFILE_REFLECTION_KEY, profileReflectionMap);
-  saveJSON(STORAGE_PROFILE_MEMORY_GAME_KEY, profileMemoryGameMap);
-  saveJSON(STORAGE_PROFILE_CHORE_COMPLETION_KEY, profileChoreCompletionMap);
+  saveJSON(STORAGE.PROFILE_PROGRESS, profileProgressMap);
+  saveJSON(STORAGE.PROFILE_REFLECTION, profileReflectionMap);
+  saveJSON(STORAGE.PROFILE_MEMORY_GAME, profileMemoryGameMap);
+  saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
 }
 
 function migrateLegacyData(defaultProfileId) {
-  const legacyProgress = loadJSON(STORAGE_PROGRESS_KEY, null);
-  const legacyReflections = loadJSON(STORAGE_REFLECTION_KEY, null);
+  const legacyProgress = loadJSON(STORAGE.PROGRESS, null);
+  const legacyReflections = loadJSON(STORAGE.REFLECTION, null);
 
   if (legacyProgress && !profileProgressMap[defaultProfileId]) {
     profileProgressMap[defaultProfileId] = legacyProgress;
@@ -374,28 +499,93 @@ function migrateLegacyData(defaultProfileId) {
 }
 
 function initProfilesAndData() {
-  profiles = loadJSON(STORAGE_PROFILES_KEY, []);
-  if (!Array.isArray(profiles) || !profiles.length) {
-    profiles = [createProfile("Child 1", [5])];
-  }
+  initParentProfile();
 
-  profileProgressMap = loadJSON(STORAGE_PROFILE_PROGRESS_KEY, {});
-  profileReflectionMap = loadJSON(STORAGE_PROFILE_REFLECTION_KEY, {});
-  profileMemoryGameMap = loadJSON(STORAGE_PROFILE_MEMORY_GAME_KEY, {});
-  profileChoreCompletionMap = loadJSON(STORAGE_PROFILE_CHORE_COMPLETION_KEY, {});
+  const rawProfiles = loadJSON(STORAGE.PROFILES, []);
+  profiles =
+    typeof fcv.normalizeProfiles === "function"
+      ? fcv.normalizeProfiles(
+          rawProfiles,
+          PROFILE_AGES,
+          PROFILE_ICON_OPTIONS.map((icon) => icon.id)
+        )
+      : Array.isArray(rawProfiles) && rawProfiles.length
+        ? rawProfiles
+        : [createProfile("Child 1", [5], PROFILE_ICON_OPTIONS[0].id)];
+  profiles = profiles.map((profile, index) => ({
+    ...profile,
+    icon: getProfileIconOption(profile?.icon || PROFILE_ICON_OPTIONS[index % PROFILE_ICON_OPTIONS.length].id).id
+  }));
+
+  profileProgressMap = loadJSON(STORAGE.PROFILE_PROGRESS, {});
+  profileReflectionMap = loadJSON(STORAGE.PROFILE_REFLECTION, {});
+  profileMemoryGameMap = loadJSON(STORAGE.PROFILE_MEMORY_GAME, {});
+  profileChoreCompletionMap = loadJSON(STORAGE.PROFILE_CHORE_COMPLETION, {});
 
   migrateLegacyData(profiles[0].id);
 
   profiles.forEach((profile) => ensureProfileData(profile.id));
 
-  const storedActiveProfile = localStorage.getItem(STORAGE_ACTIVE_PROFILE_KEY);
+  const storedActiveProfile = safeGetItem(STORAGE.ACTIVE_PROFILE);
   activeProfileId = profiles.some((profile) => profile.id === storedActiveProfile)
     ? storedActiveProfile
     : profiles[0].id;
 
-  saveJSON(STORAGE_PROFILES_KEY, profiles);
+  saveJSON(STORAGE.PROFILES, profiles);
   saveProfileDataMaps();
-  localStorage.setItem(STORAGE_ACTIVE_PROFILE_KEY, activeProfileId);
+  safeSetItem(STORAGE.ACTIVE_PROFILE, activeProfileId);
+}
+
+function removeActiveProfile() {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return;
+  }
+
+  if (profiles.length <= 1) {
+    window.alert("At least one child profile is required.");
+    return;
+  }
+
+  const message = `Remove ${activeProfile.name}? This also removes chores assigned to this child.`;
+  if (!window.confirm(message)) {
+    return;
+  }
+
+  const removedId = activeProfile.id;
+  const fallbackProfile = profiles.find((profile) => profile.id !== removedId);
+  if (!fallbackProfile) {
+    return;
+  }
+
+  const removedChoreIds = new Set(
+    choreMappings.filter((mapping) => mapping.assignedProfileId === removedId).map((mapping) => mapping.id)
+  );
+
+  profiles = profiles.filter((profile) => profile.id !== removedId);
+  choreMappings = choreMappings.filter((mapping) => mapping.assignedProfileId !== removedId);
+
+  delete profileProgressMap[removedId];
+  delete profileReflectionMap[removedId];
+  delete profileMemoryGameMap[removedId];
+  delete profileChoreCompletionMap[removedId];
+
+  Object.keys(profileChoreCompletionMap).forEach((profileId) => {
+    const completionByWeek = profileChoreCompletionMap[profileId];
+    Object.keys(completionByWeek).forEach((weekKey) => {
+      const weekCompletion = completionByWeek[weekKey];
+      removedChoreIds.forEach((choreId) => {
+        if (weekCompletion[choreId]) {
+          delete weekCompletion[choreId];
+        }
+      });
+    });
+  });
+
+  saveJSON(STORAGE.PROFILES, profiles);
+  saveProfileDataMaps();
+  saveChoreMappings();
+  setActiveProfile(fallbackProfile.id);
 }
 
 function setActiveProfile(profileId, options = {}) {
@@ -405,11 +595,13 @@ function setActiveProfile(profileId, options = {}) {
   }
 
   activeProfileId = profileId;
-  localStorage.setItem(STORAGE_ACTIVE_PROFILE_KEY, profileId);
+  safeSetItem(STORAGE.ACTIVE_PROFILE, profileId);
 
   renderProfileSelect();
+  renderProfileIconSelect();
   renderProfileAgeGrid();
   renderProfileList();
+  populateChoreProfileSelect();
 
   const activeProfile = getActiveProfile();
   activeChildLabel.textContent = activeProfile ? `Viewing: ${activeProfile.name}` : "";
@@ -426,6 +618,21 @@ function setActiveProfile(profileId, options = {}) {
   }
 }
 
+function populateIconSelect(selectEl, selectedIconId) {
+  if (!selectEl) {
+    return;
+  }
+
+  selectEl.innerHTML = "";
+  PROFILE_ICON_OPTIONS.forEach((icon) => {
+    const option = document.createElement("option");
+    option.value = icon.id;
+    option.textContent = `${icon.glyph} ${icon.label}`;
+    option.selected = icon.id === selectedIconId;
+    selectEl.appendChild(option);
+  });
+}
+
 function renderProfileSelect() {
   if (!profileSelect) {
     return;
@@ -435,11 +642,20 @@ function renderProfileSelect() {
   profiles.forEach((profile) => {
     const option = document.createElement("option");
     option.value = profile.id;
-    option.textContent = profile.name;
+    option.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name}`;
     profileSelect.appendChild(option);
   });
 
   profileSelect.value = activeProfileId;
+}
+
+function renderProfileIconSelect() {
+  if (!profileIconSelect) {
+    return;
+  }
+
+  const activeProfile = getActiveProfile();
+  populateIconSelect(profileIconSelect, activeProfile?.icon || PROFILE_ICON_OPTIONS[0].id);
 }
 
 function renderProfileAgeGrid() {
@@ -493,17 +709,31 @@ function renderProfileList() {
     }
 
     const ages = profile.ages && profile.ages.length ? profile.ages.join(",") : "none";
-    badge.textContent = `${profile.name} • ages ${ages}`;
+    badge.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name} • ages ${ages}`;
     profileList.appendChild(badge);
   });
+
+  if (profileRemoveBtn) {
+    profileRemoveBtn.disabled = profiles.length <= 1;
+  }
 }
 
 function initProfileControls() {
-  if (!profileForm || !profileNameInput || !profileSelect || !profileAgeSaveBtn) {
+  if (
+    !profileForm ||
+    !profileNameInput ||
+    !profileIconInput ||
+    !profileSelect ||
+    !profileIconSelect ||
+    !profileAgeSaveBtn ||
+    !profileRemoveBtn
+  ) {
     return;
   }
 
+  populateIconSelect(profileIconInput, PROFILE_ICON_OPTIONS[0].id);
   renderProfileSelect();
+  renderProfileIconSelect();
   renderProfileAgeGrid();
   renderProfileList();
 
@@ -514,14 +744,15 @@ function initProfileControls() {
       return;
     }
 
-    const profile = createProfile(name, [5]);
+    const profile = createProfile(name, [5], profileIconInput.value);
     profiles.push(profile);
     ensureProfileData(profile.id);
 
-    saveJSON(STORAGE_PROFILES_KEY, profiles);
+    saveJSON(STORAGE.PROFILES, profiles);
     saveProfileDataMaps();
 
     profileNameInput.value = "";
+    profileIconInput.value = PROFILE_ICON_OPTIONS[0].id;
     setActiveProfile(profile.id);
   });
 
@@ -537,9 +768,38 @@ function initProfileControls() {
 
     const selectedAges = getSelectedAgesFromGrid();
     activeProfile.ages = selectedAges;
-    saveJSON(STORAGE_PROFILES_KEY, profiles);
+    activeProfile.icon = getProfileIconOption(profileIconSelect.value).id;
+    saveJSON(STORAGE.PROFILES, profiles);
 
+    renderProfileSelect();
     renderProfileList();
+    renderParentDashboard();
+  });
+
+  profileRemoveBtn.addEventListener("click", () => {
+    removeActiveProfile();
+  });
+}
+
+function initParentProfileControls() {
+  if (!parentProfileForm || !parentNameInput) {
+    return;
+  }
+
+  renderParentProfile();
+
+  parentProfileForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const name = parentNameInput.value.trim();
+    if (!name) {
+      return;
+    }
+
+    parentProfile = {
+      name
+    };
+    saveParentProfile();
+    renderParentProfile();
     renderParentDashboard();
   });
 }
@@ -560,7 +820,7 @@ function setProgress(progress) {
   }
 
   profileProgressMap[activeProfile.id] = progress;
-  saveJSON(STORAGE_PROFILE_PROGRESS_KEY, profileProgressMap);
+  saveJSON(STORAGE.PROFILE_PROGRESS, profileProgressMap);
 
   attemptsCount.textContent = progress.attempts;
   correctCount.textContent = progress.correct;
@@ -582,7 +842,7 @@ function setActiveMemoryStats(stats) {
     return;
   }
   profileMemoryGameMap[activeProfile.id] = stats;
-  saveJSON(STORAGE_PROFILE_MEMORY_GAME_KEY, profileMemoryGameMap);
+  saveJSON(STORAGE.PROFILE_MEMORY_GAME, profileMemoryGameMap);
 }
 
 function renderMemoryGameScore() {
@@ -610,7 +870,7 @@ function setActiveReflections(reflections) {
   }
 
   profileReflectionMap[activeProfile.id] = reflections;
-  saveJSON(STORAGE_PROFILE_REFLECTION_KEY, profileReflectionMap);
+  saveJSON(STORAGE.PROFILE_REFLECTION, profileReflectionMap);
 }
 
 function getProfileWeekCompletion(profileId) {
@@ -641,7 +901,7 @@ function setChoreCompletedForActiveProfile(mappingId, completed) {
 
   const completion = getProfileWeekCompletion(activeProfile.id);
   completion[mappingId] = completed;
-  saveJSON(STORAGE_PROFILE_CHORE_COMPLETION_KEY, profileChoreCompletionMap);
+  saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
 }
 
 function getAllVerseWords() {
@@ -946,7 +1206,7 @@ function pickScenario() {
     return null;
   }
 
-  const previousId = Number(localStorage.getItem(STORAGE_SCENARIO_KEY));
+  const previousId = Number(safeGetItem(STORAGE.SCENARIO));
   let nextIndex = Math.floor(Math.random() * scenarios.length);
 
   if (scenarios.length > 1) {
@@ -955,7 +1215,7 @@ function pickScenario() {
     }
   }
 
-  localStorage.setItem(STORAGE_SCENARIO_KEY, String(nextIndex));
+  safeSetItem(STORAGE.SCENARIO, String(nextIndex));
   return scenarios[nextIndex];
 }
 
@@ -1026,24 +1286,38 @@ function handleChoice(selectedIndex, button) {
   renderParentDashboard();
 }
 
-function getDefaultChoreMappings() {
+function getDefaultChoreMappings(defaultProfileId = "") {
   return DEFAULT_CHORE_MAPPINGS.map((item, index) => ({
     id: `default-${index + 1}`,
     chore: item.chore,
-    value: item.value
+    value: item.value,
+    assignedProfileId: defaultProfileId
   }));
 }
 
-function loadChoreMappings() {
-  const saved = loadJSON(STORAGE_CHORE_MAP_KEY, null);
-  if (Array.isArray(saved) && saved.length) {
-    return saved;
+function normalizeChoreMappings(rawMappings) {
+  const fallbackProfileId = getActiveProfile()?.id || profiles[0]?.id || "";
+  if (typeof fcv.normalizeChoreMappings === "function") {
+    return fcv.normalizeChoreMappings(rawMappings, profiles, fallbackProfileId, DEFAULT_CHORE_MAPPINGS);
   }
-  return getDefaultChoreMappings();
+
+  if (!Array.isArray(rawMappings)) {
+    return getDefaultChoreMappings(fallbackProfileId);
+  }
+
+  return rawMappings;
+}
+
+function loadChoreMappings() {
+  const saved = loadJSON(STORAGE.CHORE_MAP, null);
+  if (Array.isArray(saved) && saved.length) {
+    return normalizeChoreMappings(saved);
+  }
+  return getDefaultChoreMappings(getActiveProfile()?.id || profiles[0]?.id || "");
 }
 
 function saveChoreMappings() {
-  saveJSON(STORAGE_CHORE_MAP_KEY, choreMappings);
+  saveJSON(STORAGE.CHORE_MAP, choreMappings);
 }
 
 function populateChoreValueSelect() {
@@ -1061,12 +1335,48 @@ function populateChoreValueSelect() {
   });
 }
 
-function getActiveChoreCompletionCount() {
-  const completed = choreMappings.filter((mapping) => isChoreCompletedForActiveProfile(mapping.id)).length;
+function populateChoreProfileSelect() {
+  if (!choreProfileSelect) {
+    return;
+  }
+
+  choreProfileSelect.innerHTML = "";
+
+  profiles.forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = `Assign: ${getProfileIconGlyph(profile.icon)} ${profile.name}`;
+    choreProfileSelect.appendChild(option);
+  });
+
+  if (activeProfileId && profiles.some((profile) => profile.id === activeProfileId)) {
+    choreProfileSelect.value = activeProfileId;
+  } else if (profiles[0]) {
+    choreProfileSelect.value = profiles[0].id;
+  }
+}
+
+function getChoreMappingsForProfile(profileId) {
+  return choreMappings.filter((mapping) => mapping.assignedProfileId === profileId);
+}
+
+function getCompletedAssignedChoreCount(profileId) {
+  const completion = getProfileWeekCompletion(profileId);
+  const assigned = getChoreMappingsForProfile(profileId);
+  const completed = assigned.filter((mapping) => Boolean(completion[mapping.id])).length;
+
   return {
     completed,
-    total: choreMappings.length
+    total: assigned.length
   };
+}
+
+function getActiveChoreCompletionCount() {
+  const activeProfile = getActiveProfile();
+  if (!activeProfile) {
+    return { completed: 0, total: 0 };
+  }
+  return getCompletedAssignedChoreCount(activeProfile.id);
 }
 
 function renderChoreSummary() {
@@ -1089,18 +1399,26 @@ function renderChoreMappings() {
     return;
   }
 
+  const activeProfile = getActiveProfile();
   choreList.innerHTML = "";
 
-  if (!choreMappings.length) {
+  if (!activeProfile) {
+    renderChoreSummary();
+    return;
+  }
+
+  const activeChores = getChoreMappingsForProfile(activeProfile.id);
+
+  if (!activeChores.length) {
     const empty = document.createElement("li");
     empty.className = "chore-empty";
-    empty.textContent = "No mappings yet. Add your first chore above.";
+    empty.textContent = `${activeProfile.name} has no assigned chores yet. Add one above.`;
     choreList.appendChild(empty);
     renderChoreSummary();
     return;
   }
 
-  choreMappings.forEach((mapping) => {
+  activeChores.forEach((mapping) => {
     const value = getValueByIdentifier(mapping.value);
     const toneClass = getValueToneClass(mapping.value);
     const completed = isChoreCompletedForActiveProfile(mapping.id);
@@ -1148,12 +1466,14 @@ function renderChoreMappings() {
 }
 
 function initChoreMapping() {
-  if (!choreForm || !choreInput || !choreValueSelect || !choreList) {
+  if (!choreForm || !choreInput || !choreValueSelect || !choreProfileSelect || !choreList) {
     return;
   }
 
   populateChoreValueSelect();
+  populateChoreProfileSelect();
   choreMappings = loadChoreMappings();
+  saveChoreMappings();
   renderChoreMappings();
 
   choreForm.addEventListener("submit", (event) => {
@@ -1161,15 +1481,17 @@ function initChoreMapping() {
 
     const chore = choreInput.value.trim();
     const value = choreValueSelect.value;
+    const assignedProfileId = choreProfileSelect.value;
 
-    if (!chore || !value) {
+    if (!chore || !value || !assignedProfileId) {
       return;
     }
 
     choreMappings.unshift({
       id: createId("chore"),
       chore,
-      value
+      value,
+      assignedProfileId
     });
 
     saveChoreMappings();
@@ -1207,7 +1529,7 @@ function initChoreMapping() {
     });
 
     saveChoreMappings();
-    saveJSON(STORAGE_PROFILE_CHORE_COMPLETION_KEY, profileChoreCompletionMap);
+    saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
     renderChoreMappings();
     renderParentDashboard();
   });
@@ -1236,6 +1558,8 @@ function renderParentDashboard() {
     return;
   }
 
+  renderParentProfile();
+
   const totalChildren = profiles.length;
   let totalAttempts = 0;
   let totalCorrect = 0;
@@ -1255,7 +1579,9 @@ function renderParentDashboard() {
 
     const completionByWeek = profileChoreCompletionMap[profile.id] || {};
     const weekCompletion = completionByWeek[weekKey] || {};
-    totalChoresThisWeek += Object.values(weekCompletion).filter(Boolean).length;
+    const assignedIds = new Set(getChoreMappingsForProfile(profile.id).map((mapping) => mapping.id));
+    totalChoresThisWeek += Object.entries(weekCompletion).filter(([mappingId, done]) => done && assignedIds.has(mappingId))
+      .length;
   });
 
   const overallAccuracy = totalAttempts ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
@@ -1274,11 +1600,10 @@ function renderParentDashboard() {
   }
 
   const activeProgress = profileProgressMap[activeProfile.id] || getDefaultProgress();
-  const activeChores = getProfileWeekCompletion(activeProfile.id);
-  const activeDone = Object.values(activeChores).filter(Boolean).length;
+  const activeChoreProgress = getCompletedAssignedChoreCount(activeProfile.id);
   const agesText = activeProfile.ages && activeProfile.ages.length ? activeProfile.ages.join(", ") : "none";
 
-  parentActiveSummary.textContent = `${activeProfile.name} (ages ${agesText}) • ${activeProgress.correct}/${activeProgress.attempts} correct • ${activeDone}/${choreMappings.length} chores this week`;
+  parentActiveSummary.textContent = `${getProfileIconGlyph(activeProfile.icon)} ${activeProfile.name} (ages ${agesText}) • ${activeProgress.correct}/${activeProgress.attempts} correct • ${activeChoreProgress.completed}/${activeChoreProgress.total} chores this week`;
 }
 
 if (reflectionForm && reflectionInput) {
@@ -1303,6 +1628,7 @@ buildValueCards();
 setSpotlight();
 setValueOfWeek();
 initProfilesAndData();
+initParentProfileControls();
 initProfileControls();
 setActiveProfile(activeProfileId, { refreshScenario: false });
 initMemoryVerseMode();

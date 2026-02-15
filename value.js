@@ -1,4 +1,5 @@
-const values = Array.isArray(window.CORE_VALUES) ? window.CORE_VALUES : [];
+const fcv = window.FCV || {};
+const values = typeof fcv.getValues === "function" ? fcv.getValues() : Array.isArray(window.CORE_VALUES) ? window.CORE_VALUES : [];
 
 const badgeEl = document.getElementById("value-badge");
 const titleEl = document.getElementById("value-title");
@@ -13,12 +14,14 @@ const verseTextEl = document.getElementById("value-verse-text");
 const questionEl = document.getElementById("value-question");
 const otherValuesEl = document.getElementById("other-values");
 
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
-}
+const slugify =
+  typeof fcv.slugify === "function"
+    ? fcv.slugify
+    : (text) =>
+        String(text || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/(^-|-$)/g, "");
 
 function renderList(target, items) {
   target.innerHTML = "";
@@ -94,7 +97,8 @@ function renderValuePage() {
   }
 
   const { value, index } = getValueFromQuery();
-  const tone = `value-tone-${(index % values.length) + 1}`;
+  const tone =
+    typeof fcv.getValueToneClass === "function" ? fcv.getValueToneClass(value.name, values) : `value-tone-${(index % values.length) + 1}`;
   const slug = value.slug || slugify(value.name);
   const initials = value.name
     .split(" ")

@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chore Chart</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Poppins:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body class="chore-chart-page">
+    <header class="hero">
+      <div class="hero__content">
+        <p class="eyebrow">Family Core Values</p>
+        <h1>Chore Chart</h1>
+        <p class="intro">Assigned chores grouped by child profile with weekly completion status.</p>
+        <a href="index.html" class="btn detail-back">Back to Dashboard</a>
+      </div>
+      <div class="hero__sparkles" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </div>
+    </header>
+
+    <main class="chore-chart-layout">
+      <section class="panel chore-chart-overview" aria-labelledby="chore-chart-overview-title">
+        <h2 id="chore-chart-overview-title">This Week</h2>
+        <p id="chore-chart-week" class="panel-meta"></p>
+        <p id="chore-chart-summary" class="spotlight-message"></p>
+      </section>
+
+      <section class="panel chore-chart-grid-panel" aria-labelledby="chore-chart-grid-title">
+        <h2 id="chore-chart-grid-title">By Child Profile</h2>
+        <div id="chore-chart-grid" class="chore-chart-grid"></div>
+      </section>
+    </main>
+
+    <script src="values-data.js"></script>
+    <script src="fcv-core.js"></script>
+    <script src="chore-chart.js"></script>
+    <script src="read-aloud.js"></script>
+  </body>
+</html>

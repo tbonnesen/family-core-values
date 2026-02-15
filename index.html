@@ -53,13 +53,19 @@
             placeholder="Add child name"
             required
           />
+          <select id="profile-icon-input" aria-label="Icon for new child profile" required></select>
           <button class="btn btn--small" type="submit">Add Child</button>
         </form>
         <label class="field-label" for="profile-select">Active Child</label>
         <select id="profile-select" required></select>
+        <label class="field-label" for="profile-icon-select">Profile Icon</label>
+        <select id="profile-icon-select" required></select>
         <p class="field-label">Applicable Ages</p>
         <div id="profile-age-grid" class="profile-age-grid"></div>
-        <button id="profile-age-save" class="btn btn--small btn--alt" type="button">Save Ages</button>
+        <div class="profile-actions">
+          <button id="profile-age-save" class="btn btn--small btn--alt" type="button">Save Ages</button>
+          <button id="profile-remove" class="btn btn--small btn--danger" type="button">Remove Active Child</button>
+        </div>
         <div id="profile-list" class="profile-list"></div>
       </section>
 
@@ -127,9 +133,16 @@
             required
           />
           <select id="chore-value-select" required></select>
+          <select id="chore-profile-select" required></select>
           <button class="btn btn--alt" type="submit">Add Mapping</button>
         </form>
         <ul id="chore-list" class="chore-list"></ul>
+      </section>
+
+      <section class="panel panel--chorechart" aria-labelledby="chorechart-title">
+        <h2 id="chorechart-title">Chore Chart</h2>
+        <p class="spotlight-message">Open a full chart that groups assigned chores by child profile.</p>
+        <a class="btn chore-chart-link" href="chore-chart.html">Open Chore Chart</a>
       </section>
 
       <section class="panel panel--reflection" aria-labelledby="reflection-title">
@@ -150,6 +163,17 @@
 
       <section class="panel panel--parent" aria-labelledby="parent-title">
         <h2 id="parent-title">Parent Dashboard</h2>
+        <p id="parent-name-display" class="panel-meta"></p>
+        <form id="parent-profile-form" class="parent-profile-form">
+          <input
+            id="parent-name-input"
+            type="text"
+            maxlength="48"
+            placeholder="Parent name"
+            required
+          />
+          <button class="btn btn--small" type="submit">Save Parent Profile</button>
+        </form>
         <div class="parent-stats">
           <div>
             <strong id="parent-children-count">0</strong>
@@ -188,6 +212,7 @@
     </template>
 
     <script src="values-data.js"></script>
+    <script src="fcv-core.js"></script>
     <script src="app.js"></script>
     <script src="read-aloud.js"></script>
   </body>

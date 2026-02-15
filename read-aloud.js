@@ -1,8 +1,11 @@
 (function () {
+  const fcv = window.FCV || {};
   const synth = window.speechSynthesis;
   const supported = !!synth && typeof SpeechSynthesisUtterance !== "undefined";
-  const STORAGE_PROFILES_KEY = "fcv_profiles_v2";
-  const STORAGE_ACTIVE_PROFILE_KEY = "fcv_active_profile_v2";
+  const STORAGE = fcv.STORAGE || {
+    PROFILES: "fcv_profiles_v2",
+    ACTIVE_PROFILE: "fcv_active_profile_v2"
+  };
   const state = {
     activeButton: null,
     utterance: null,
@@ -31,15 +34,10 @@
     });
   }
 
-  function parseJSON(raw, fallback) {
-    try {
-      return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
-  }
-
   function safeGetItem(key) {
+    if (typeof fcv.safeGetItem === "function") {
+      return fcv.safeGetItem(key);
+    }
     try {
       return localStorage.getItem(key);
     } catch {
@@ -48,8 +46,17 @@
   }
 
   function shouldUseKidPacing() {
-    const profiles = parseJSON(safeGetItem(STORAGE_PROFILES_KEY), []);
-    const activeProfileId = safeGetItem(STORAGE_ACTIVE_PROFILE_KEY);
+    let profiles;
+    if (typeof fcv.loadJSON === "function") {
+      profiles = fcv.loadJSON(STORAGE.PROFILES, []);
+    } else {
+      try {
+        profiles = JSON.parse(safeGetItem(STORAGE.PROFILES) || "[]");
+      } catch {
+        profiles = [];
+      }
+    }
+    const activeProfileId = safeGetItem(STORAGE.ACTIVE_PROFILE);
     if (!Array.isArray(profiles) || !activeProfileId) {
       return false;
     }

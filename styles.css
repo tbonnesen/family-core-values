@@ -226,6 +226,11 @@ h3 {
   grid-row: span 3;
 }
 
+.panel--chorechart {
+  grid-column: span 3;
+  grid-row: span 2;
+}
+
 .panel-meta {
   margin: 0.1rem 0 0;
   color: #adbcd3;
@@ -247,6 +252,10 @@ h3 {
 .panel-link:focus-visible {
   outline: none;
   text-decoration: underline;
+}
+
+.chore-chart-link {
+  display: inline-block;
 }
 
 .read-aloud-target {
@@ -628,10 +637,21 @@ h3 {
   color: #271523;
 }
 
+.btn--danger {
+  background: linear-gradient(130deg, #ff93a8, #ff5f86);
+  color: #2f1120;
+}
+
 .btn--small {
   margin-top: 0;
   padding: 0.42rem 0.72rem;
   font-size: 0.8rem;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.15);
 }
 
 .reflection-form,
@@ -645,6 +665,13 @@ h3 {
   margin-top: 0.72rem;
   display: grid;
   gap: 0.5rem;
+}
+
+.profile-actions {
+  margin-top: 0.45rem;
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
 }
 
 .profile-age-grid {
@@ -676,6 +703,12 @@ h3 {
   display: flex;
   flex-wrap: wrap;
   gap: 0.34rem;
+}
+
+.parent-profile-form {
+  margin-top: 0.58rem;
+  display: grid;
+  gap: 0.5rem;
 }
 
 .profile-pill {
@@ -834,6 +867,112 @@ select:focus-visible {
   font-weight: 700;
 }
 
+.chore-chart-page .hero {
+  margin-top: 1rem;
+}
+
+.chore-chart-layout {
+  width: min(1160px, 94vw);
+  margin: 1rem auto 2rem;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.9rem;
+}
+
+.chore-chart-grid {
+  margin-top: 0.68rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 0.56rem;
+}
+
+.chore-profile-card {
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(28, 44, 67, 0.74);
+  padding: 0.62rem;
+}
+
+.chore-profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.chore-profile-header h3 {
+  margin: 0;
+}
+
+.chore-profile-stat {
+  border-radius: 999px;
+  background: rgba(141, 178, 240, 0.24);
+  color: #dceaff;
+  font-size: 0.74rem;
+  font-weight: 800;
+  padding: 0.14rem 0.5rem;
+}
+
+.chore-profile-empty {
+  margin: 0.48rem 0 0;
+  color: #c0cedf;
+  font-weight: 700;
+}
+
+.chore-chart-list {
+  margin: 0.56rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.38rem;
+}
+
+.chore-chart-item {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(35, 51, 74, 0.72);
+  padding: 0.38rem 0.44rem;
+}
+
+.chore-chart-item.is-complete .chore-chart-name {
+  text-decoration: line-through;
+  opacity: 0.8;
+}
+
+.chore-chart-name {
+  color: #ecf3ff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  word-break: break-word;
+}
+
+.chore-chart-value {
+  text-decoration: none;
+  color: #0f1e30;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.12rem 0.46rem;
+}
+
+.chore-chart-status {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  color: #e5efff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  padding: 0.12rem 0.44rem;
+}
+
+.chore-chart-item.is-complete .chore-chart-status {
+  background: rgba(121, 228, 191, 0.28);
+  color: #ddfff0;
+}
+
 .value-detail-page .hero {
   margin-top: 1rem;
 }
@@ -986,6 +1125,7 @@ select:focus-visible {
 .memory-value-link:focus-visible,
 .other-value-link:focus-visible,
 .chore-value:focus-visible,
+.chore-chart-value:focus-visible,
 .chore-complete:focus-visible,
 .chore-remove:focus-visible,
 .choice-btn:focus-visible,
@@ -1042,7 +1182,8 @@ select:focus-visible {
 @media (min-width: 1600px) {
   .hero,
   .layout,
-  .detail-layout {
+  .detail-layout,
+  .chore-chart-layout {
     width: min(1420px, 90vw);
   }
 
@@ -1058,7 +1199,8 @@ select:focus-visible {
 @media (max-width: 1366px) {
   .hero,
   .layout,
-  .detail-layout {
+  .detail-layout,
+  .chore-chart-layout {
     width: 95vw;
   }
 }
@@ -1073,7 +1215,8 @@ select:focus-visible {
   .panel--progress,
   .panel--profiles,
   .panel--weekly,
-  .panel--memory {
+  .panel--memory,
+  .panel--chorechart {
     grid-column: span 3;
     grid-row: span 2;
   }
@@ -1131,7 +1274,8 @@ select:focus-visible {
   .panel--challenge,
   .panel--chores,
   .panel--reflection,
-  .panel--parent {
+  .panel--parent,
+  .panel--chorechart {
     grid-column: span 1;
     grid-row: auto;
   }
@@ -1145,6 +1289,11 @@ select:focus-visible {
   }
 
   .chore-item {
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .chore-chart-item {
     grid-template-columns: 1fr;
     justify-items: start;
   }
@@ -1166,7 +1315,8 @@ select:focus-visible {
   }
 
   .layout,
-  .detail-layout {
+  .detail-layout,
+  .chore-chart-layout {
     width: 95vw;
     grid-template-columns: 1fr;
     gap: 0.72rem;
