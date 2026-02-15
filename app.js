@@ -1624,17 +1624,38 @@ if (nextScenarioBtn) {
   nextScenarioBtn.addEventListener("click", loadScenario);
 }
 
-buildValueCards();
-setSpotlight();
-setValueOfWeek();
-initProfilesAndData();
-initParentProfileControls();
-initProfileControls();
-setActiveProfile(activeProfileId, { refreshScenario: false });
-initMemoryVerseMode();
-setProgress(getActiveProgress());
-loadScenario();
-initChoreMapping();
-renderChoreMappings();
-loadReflections();
-renderParentDashboard();
+function startDashboardApp() {
+  buildValueCards();
+  setSpotlight();
+  setValueOfWeek();
+  initProfilesAndData();
+  initParentProfileControls();
+  initProfileControls();
+  setActiveProfile(activeProfileId, { refreshScenario: false });
+  initMemoryVerseMode();
+  setProgress(getActiveProgress());
+  loadScenario();
+  initChoreMapping();
+  renderChoreMappings();
+  loadReflections();
+  renderParentDashboard();
+}
+
+function refreshDashboardFromSharedState() {
+  initProfilesAndData();
+  choreMappings = loadChoreMappings();
+  setActiveProfile(activeProfileId, { refreshScenario: false });
+  renderChoreMappings();
+  loadReflections();
+  renderParentDashboard();
+}
+
+window.addEventListener("fcv:remote-update", () => {
+  refreshDashboardFromSharedState();
+});
+
+if (fcv.ready && typeof fcv.ready.then === "function") {
+  fcv.ready.finally(startDashboardApp);
+} else {
+  startDashboardApp();
+}

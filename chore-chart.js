@@ -219,4 +219,10 @@ function renderChoreChart() {
   summaryLabel.textContent = `${totalCompleted}/${totalAssigned} assigned chores complete this week`;
 }
 
-renderChoreChart();
+if (fcv.ready && typeof fcv.ready.then === "function") {
+  fcv.ready.finally(renderChoreChart);
+} else {
+  renderChoreChart();
+}
+
+window.addEventListener("fcv:remote-update", renderChoreChart);

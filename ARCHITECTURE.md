@@ -13,9 +13,12 @@
     - Storage keys
     - Safe localStorage access
     - JSON load/save helpers
+    - Cross-device shared sync bootstrap (`/api/state`)
     - Date/week/quarter helpers
     - Value lookup and tone mapping
     - Profile and chore normalization
+- `server.js`
+  - Local-network app host + shared state API.
 - `app.js`
   - Dashboard feature layer:
     - Profiles
@@ -55,3 +58,10 @@ All page scripts normalize loaded data via `fcv-core.js` before rendering.
 - Keep page scripts feature-focused and avoid duplicating helpers.
 - Reuse storage keys from `window.FCV.STORAGE` only.
 - Normalize persisted data before using it in render logic.
+
+## Local-Network Sync
+- Start the app with:
+  - `HOST=0.0.0.0 PORT=8080 node server.js`
+- Open from any device on your network using:
+  - `http://<your-computer-local-ip>:8080`
+- Shared family data is stored in `shared-state.json` on the host machine and automatically synced.

@@ -267,6 +267,9 @@ h3 {
   top: 0.68rem;
   right: 0.68rem;
   z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
   border: 0;
   border-radius: 999px;
   background: rgba(126, 165, 242, 0.22);
@@ -277,6 +280,12 @@ h3 {
   letter-spacing: 0.02em;
   padding: 0.2rem 0.55rem;
   cursor: pointer;
+}
+
+.read-aloud-btn::before {
+  content: "\1F50A";
+  line-height: 1;
+  font-size: 0.82rem;
 }
 
 .read-aloud-btn:hover,
