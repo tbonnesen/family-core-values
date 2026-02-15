@@ -3,7 +3,8 @@ const values = typeof fcv.getValues === "function" ? fcv.getValues() : Array.isA
 const STORAGE = fcv.STORAGE || {
   CHORE_MAP: "fcv_chore_mappings_v1",
   PROFILES: "fcv_profiles_v2",
-  PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2"
+  PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2",
+  PROFILE_CHORE_APPROVAL: "fcv_profile_chore_approval_v1"
 };
 const PROFILE_ICON_GLYPHS = {
   rocket: "\u{1F680}",
@@ -31,6 +32,9 @@ const PROFILE_ICON_GLYPHS = {
   butterfly: "\u{1F98B}",
   dragon: "\u{1F409}"
 };
+const PROFILE_AGES =
+  Array.isArray(fcv.PROFILE_AGES_DEFAULT) && fcv.PROFILE_AGES_DEFAULT.length ? fcv.PROFILE_AGES_DEFAULT : [1, 2, 3, 4, 5, 6, 7];
+const PROFILE_ICON_IDS = Object.keys(PROFILE_ICON_GLYPHS);
 
 const weekLabel = document.getElementById("chore-chart-week");
 const summaryLabel = document.getElementById("chore-chart-summary");
@@ -136,9 +140,18 @@ const normalizeChoreMappings =
 let profiles = [];
 let choreMappings = [];
 let profileChoreCompletionMap = {};
+let profileChoreApprovalMap = {};
 let controlsBound = false;
 const VALUE_TRANSITION_KEY = "fcv_transition_value_slug";
 let valueLinkTransitionBound = false;
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function toPlainObject(value) {
+  return isPlainObject(value) ? value : {};
+}
 
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
@@ -206,6 +219,11 @@ function getProfileWeekCompletion(completionMap, profileId, weekKey) {
   return byProfile[weekKey] || {};
 }
 
+function getProfileWeekApprovals(approvalMap, profileId, weekKey) {
+  const byProfile = approvalMap && approvalMap[profileId] ? approvalMap[profileId] : {};
+  return byProfile[weekKey] || {};
+}
+
 function getProfileIconGlyph(iconId) {
   return PROFILE_ICON_GLYPHS[iconId] || PROFILE_ICON_GLYPHS.star;
 }
@@ -225,9 +243,107 @@ function setFeedback(message) {
 }
 
 function loadChartState() {
-  profiles = loadJSON(STORAGE.PROFILES, []);
-  profileChoreCompletionMap = loadJSON(STORAGE.PROFILE_CHORE_COMPLETION, {});
+  const rawProfiles = loadJSON(STORAGE.PROFILES, []);
+  profiles =
+    typeof fcv.normalizeProfiles === "function"
+      ? fcv.normalizeProfiles(rawProfiles, PROFILE_AGES, PROFILE_ICON_IDS)
+      : Array.isArray(rawProfiles)
+        ? rawProfiles.filter((profile) => profile && typeof profile.id === "string" && profile.id)
+        : [];
+
+  const validProfileIds = new Set(profiles.map((profile) => profile.id));
+  const rawCompletion = loadJSON(STORAGE.PROFILE_CHORE_COMPLETION, {});
+  const rawApprovals = loadJSON(STORAGE.PROFILE_CHORE_APPROVAL, {});
+  profileChoreCompletionMap = {};
+  profileChoreApprovalMap = {};
+
+  validProfileIds.forEach((profileId) => {
+    const completionByWeek = toPlainObject(rawCompletion[profileId]);
+    const cleanCompletionByWeek = {};
+    Object.keys(completionByWeek).forEach((weekKey) => {
+      const weekCompletion = toPlainObject(completionByWeek[weekKey]);
+      const cleanWeek = {};
+      Object.keys(weekCompletion).forEach((choreId) => {
+        if (weekCompletion[choreId] === true) {
+          cleanWeek[choreId] = true;
+        }
+      });
+      cleanCompletionByWeek[weekKey] = cleanWeek;
+    });
+    profileChoreCompletionMap[profileId] = cleanCompletionByWeek;
+
+    const approvalsByWeek = toPlainObject(rawApprovals[profileId]);
+    const cleanApprovalsByWeek = {};
+    Object.keys(approvalsByWeek).forEach((weekKey) => {
+      const weekApprovals = toPlainObject(approvalsByWeek[weekKey]);
+      const cleanWeek = {};
+      Object.keys(weekApprovals).forEach((choreId) => {
+        const approval = weekApprovals[choreId];
+        if (!isPlainObject(approval) || approval.status !== "pending") {
+          return;
+        }
+        cleanWeek[choreId] = {
+          status: "pending",
+          requestedAt: typeof approval.requestedAt === "string" ? approval.requestedAt : ""
+        };
+      });
+      cleanApprovalsByWeek[weekKey] = cleanWeek;
+    });
+    profileChoreApprovalMap[profileId] = cleanApprovalsByWeek;
+  });
+
   choreMappings = normalizeChoreMappings(loadJSON(STORAGE.CHORE_MAP, []), profiles, profiles[0]?.id || "", []);
+}
+
+function pruneStaleChartStateReferences() {
+  const assignedByProfile = new Map();
+  profiles.forEach((profile) => {
+    assignedByProfile.set(
+      profile.id,
+      new Set(choreMappings.filter((mapping) => mapping.assignedProfileId === profile.id).map((mapping) => mapping.id))
+    );
+  });
+
+  let completionChanged = false;
+  Object.keys(profileChoreCompletionMap).forEach((profileId) => {
+    const allowedIds = assignedByProfile.get(profileId) || new Set();
+    const byWeek = toPlainObject(profileChoreCompletionMap[profileId]);
+    Object.keys(byWeek).forEach((weekKey) => {
+      const weekCompletion = toPlainObject(byWeek[weekKey]);
+      Object.keys(weekCompletion).forEach((choreId) => {
+        if (!allowedIds.has(choreId)) {
+          delete weekCompletion[choreId];
+          completionChanged = true;
+        }
+      });
+      byWeek[weekKey] = weekCompletion;
+    });
+    profileChoreCompletionMap[profileId] = byWeek;
+  });
+
+  let approvalChanged = false;
+  Object.keys(profileChoreApprovalMap).forEach((profileId) => {
+    const allowedIds = assignedByProfile.get(profileId) || new Set();
+    const byWeek = toPlainObject(profileChoreApprovalMap[profileId]);
+    Object.keys(byWeek).forEach((weekKey) => {
+      const weekApprovals = toPlainObject(byWeek[weekKey]);
+      Object.keys(weekApprovals).forEach((choreId) => {
+        if (!allowedIds.has(choreId)) {
+          delete weekApprovals[choreId];
+          approvalChanged = true;
+        }
+      });
+      byWeek[weekKey] = weekApprovals;
+    });
+    profileChoreApprovalMap[profileId] = byWeek;
+  });
+
+  if (completionChanged) {
+    saveProfileChoreCompletionMap();
+  }
+  if (approvalChanged) {
+    saveProfileChoreApprovalMap();
+  }
 }
 
 function saveChoreMappings() {
@@ -236,6 +352,10 @@ function saveChoreMappings() {
 
 function saveProfileChoreCompletionMap() {
   saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
+}
+
+function saveProfileChoreApprovalMap() {
+  saveJSON(STORAGE.PROFILE_CHORE_APPROVAL, profileChoreApprovalMap);
 }
 
 function getProfileById(profileId) {
@@ -286,16 +406,35 @@ function populateProfileSelect(selectEl, selectedProfileId = "") {
 
 function clearChoreCompletion(mappingId) {
   Object.keys(profileChoreCompletionMap).forEach((profileId) => {
-    const byWeek = profileChoreCompletionMap[profileId];
+    const byWeek = toPlainObject(profileChoreCompletionMap[profileId]);
     if (!byWeek || typeof byWeek !== "object") {
       return;
     }
     Object.keys(byWeek).forEach((weekKey) => {
-      const completion = byWeek[weekKey];
+      const completion = toPlainObject(byWeek[weekKey]);
       if (completion && completion[mappingId]) {
         delete completion[mappingId];
       }
+      byWeek[weekKey] = completion;
     });
+    profileChoreCompletionMap[profileId] = byWeek;
+  });
+}
+
+function clearChoreApproval(mappingId) {
+  Object.keys(profileChoreApprovalMap).forEach((profileId) => {
+    const byWeek = toPlainObject(profileChoreApprovalMap[profileId]);
+    if (!byWeek || typeof byWeek !== "object") {
+      return;
+    }
+    Object.keys(byWeek).forEach((weekKey) => {
+      const approvals = toPlainObject(byWeek[weekKey]);
+      if (approvals && approvals[mappingId]) {
+        delete approvals[mappingId];
+      }
+      byWeek[weekKey] = approvals;
+    });
+    profileChoreApprovalMap[profileId] = byWeek;
   });
 }
 
@@ -305,6 +444,7 @@ function renderChoreChart() {
   }
 
   loadChartState();
+  pruneStaleChartStateReferences();
 
   const weekKey = getWeekKey();
   const weekNumber = getYearWeekIndex() + 1;
@@ -340,6 +480,7 @@ function renderChoreChart() {
   profiles.forEach((profile, profileIndex) => {
     const assigned = choreMappings.filter((mapping) => mapping.assignedProfileId === profile.id);
     const completion = getProfileWeekCompletion(profileChoreCompletionMap, profile.id, weekKey);
+    const approvals = getProfileWeekApprovals(profileChoreApprovalMap, profile.id, weekKey);
     const completedCount = assigned.filter((mapping) => Boolean(completion[mapping.id])).length;
 
     totalAssigned += assigned.length;
@@ -376,8 +517,9 @@ function renderChoreChart() {
     list.className = "chore-chart-list";
 
     assigned.forEach((mapping) => {
+      const isPending = approvals[mapping.id]?.status === "pending";
       const row = document.createElement("li");
-      row.className = `chore-chart-item${completion[mapping.id] ? " is-complete" : ""}`;
+      row.className = `chore-chart-item${completion[mapping.id] ? " is-complete" : ""}${isPending ? " is-pending" : ""}`;
 
       const main = document.createElement("div");
       main.className = "chore-chart-main";
@@ -407,7 +549,7 @@ function renderChoreChart() {
 
       const status = document.createElement("span");
       status.className = "chore-chart-status";
-      status.textContent = completion[mapping.id] ? "Done" : "Open";
+      status.textContent = completion[mapping.id] ? "Done" : isPending ? "Pending" : "Open";
 
       meta.appendChild(valueTag);
       meta.appendChild(status);
@@ -488,9 +630,11 @@ function handleChartGridClick(event) {
 
   choreMappings = choreMappings.filter((item) => item.id !== id);
   clearChoreCompletion(id);
+  clearChoreApproval(id);
 
   saveChoreMappings();
   saveProfileChoreCompletionMap();
+  saveProfileChoreApprovalMap();
   setFeedback(`Removed "${mapping.chore}".`);
   renderChoreChart();
 }
@@ -518,8 +662,10 @@ function handleChartGridChange(event) {
 
   mapping.assignedProfileId = nextProfileId;
   clearChoreCompletion(id);
+  clearChoreApproval(id);
   saveChoreMappings();
   saveProfileChoreCompletionMap();
+  saveProfileChoreApprovalMap();
 
   if (previousProfile && nextProfile) {
     setFeedback(`Moved "${mapping.chore}" from ${previousProfile.name} to ${nextProfile.name}.`);

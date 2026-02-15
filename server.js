@@ -46,6 +46,29 @@ function readStateFile() {
   }
 }
 
+function ensureStateFile() {
+  const dir = path.dirname(STATE_FILE);
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+  } catch {
+    // Ignore directory creation failures and let normal I/O error handling apply later.
+  }
+
+  try {
+    fs.accessSync(STATE_FILE, fs.constants.F_OK);
+  } catch {
+    const initial = {
+      state: {},
+      updatedAt: ""
+    };
+    try {
+      fs.writeFileSync(STATE_FILE, JSON.stringify(initial, null, 2), "utf8");
+    } catch {
+      // Ignore here; failures will surface when API reads/writes occur.
+    }
+  }
+}
+
 function writeStateFile(nextState) {
   const payload = {
     state: nextState && typeof nextState === "object" ? nextState : {},
@@ -180,7 +203,10 @@ const server = http.createServer(async (req, res) => {
   serveStatic(req, res);
 });
 
+ensureStateFile();
+
 server.listen(PORT, HOST, () => {
   console.log(`Family Core Values server running at http://${HOST}:${PORT}`);
+  console.log(`Shared state endpoint: http://${HOST}:${PORT}${API_STATE_PATH}`);
   console.log(`Shared state file: ${STATE_FILE}`);
 });

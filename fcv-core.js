@@ -12,7 +12,10 @@
     PROFILE_PROGRESS: "fcv_profile_progress_v2",
     PROFILE_REFLECTION: "fcv_profile_reflections_v2",
     PROFILE_MEMORY_GAME: "fcv_profile_memory_game_v2",
-    PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2"
+    PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2",
+    PROFILE_WEEKLY_PLANS: "fcv_profile_weekly_plans_v1",
+    PROFILE_GOAL_MILESTONES: "fcv_profile_goal_milestones_v1",
+    PROFILE_CHORE_APPROVAL: "fcv_profile_chore_approval_v1"
   };
   const SHARED_SYNC_KEYS = [
     STORAGE.PARENT_PROFILE,
@@ -21,12 +24,17 @@
     STORAGE.PROFILE_REFLECTION,
     STORAGE.PROFILE_MEMORY_GAME,
     STORAGE.PROFILE_CHORE_COMPLETION,
+    STORAGE.PROFILE_WEEKLY_PLANS,
+    STORAGE.PROFILE_GOAL_MILESTONES,
+    STORAGE.PROFILE_CHORE_APPROVAL,
     STORAGE.CHORE_MAP
   ];
   const SHARED_SYNC_KEY_SET = new Set(SHARED_SYNC_KEYS);
+  const LOCAL_SHARED_UPDATED_AT_KEY = "fcv_shared_state_updated_at_v1";
   const API_STATE_PATH = "/api/state";
   const SYNC_PUSH_DELAY_MS = 220;
   const SYNC_POLL_MS = 15000;
+  const SYNC_BOOTSTRAP_RETRY_MS = 5000;
 
   let syncEnabled = false;
   let syncPushTimer = null;
@@ -34,10 +42,28 @@
   let lastRemoteUpdatedAt = "";
   let lastRemoteStateSignature = "";
   let syncPollTimer = null;
+  let syncBootstrapTimer = null;
+  let syncBootstrapInFlight = false;
 
   function canUseRemoteSync() {
     const isHttp = global.location && /^(http|https):$/.test(global.location.protocol || "");
     return Boolean(isHttp && typeof global.fetch === "function");
+  }
+
+  function toEpochMs(value) {
+    if (typeof value !== "string" || !value) {
+      return 0;
+    }
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+
+  function getLocalSharedUpdatedAt() {
+    return safeGetItem(LOCAL_SHARED_UPDATED_AT_KEY) || "";
+  }
+
+  function touchLocalSharedUpdatedAt(timestamp = new Date().toISOString()) {
+    rawSetItem(LOCAL_SHARED_UPDATED_AT_KEY, timestamp);
   }
 
   function isSharedSyncKey(key) {
@@ -53,6 +79,35 @@
       }
     });
     return state;
+  }
+
+  function getSerializedArrayLength(sharedState, key) {
+    const raw = sharedState && typeof sharedState[key] === "string" ? sharedState[key] : "";
+    if (!raw) {
+      return 0;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.length : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function hasLikelyNewerLocalData(localState, remoteState) {
+    const localProfiles = getSerializedArrayLength(localState, STORAGE.PROFILES);
+    const remoteProfiles = getSerializedArrayLength(remoteState, STORAGE.PROFILES);
+    if (localProfiles !== remoteProfiles) {
+      return localProfiles > remoteProfiles;
+    }
+
+    const localChores = getSerializedArrayLength(localState, STORAGE.CHORE_MAP);
+    const remoteChores = getSerializedArrayLength(remoteState, STORAGE.CHORE_MAP);
+    if (localChores !== remoteChores) {
+      return localChores > remoteChores;
+    }
+
+    return false;
   }
 
   function hasAnySharedState(state) {
@@ -91,8 +146,11 @@
       return true;
     }
     const ok = rawSetItem(key, value);
-    if (ok && syncEnabled && !isApplyingRemoteState && isSharedSyncKey(key)) {
-      scheduleSharedStatePush();
+    if (ok && isSharedSyncKey(key)) {
+      touchLocalSharedUpdatedAt();
+      if (syncEnabled && !isApplyingRemoteState) {
+        scheduleSharedStatePush();
+      }
     }
     return ok;
   }
@@ -102,8 +160,11 @@
       return true;
     }
     const ok = rawRemoveItem(key);
-    if (ok && syncEnabled && !isApplyingRemoteState && isSharedSyncKey(key)) {
-      scheduleSharedStatePush();
+    if (ok && isSharedSyncKey(key)) {
+      touchLocalSharedUpdatedAt();
+      if (syncEnabled && !isApplyingRemoteState) {
+        scheduleSharedStatePush();
+      }
     }
     return ok;
   }
@@ -345,7 +406,11 @@
   }
 
   async function refreshSharedStateFromServer() {
-    if (!syncEnabled || !canUseRemoteSync()) {
+    if (!canUseRemoteSync()) {
+      return;
+    }
+    if (!syncEnabled) {
+      scheduleSyncBootstrapRetry(0);
       return;
     }
 
@@ -369,12 +434,25 @@
       const remoteUpdatedAt = typeof payload.updatedAt === "string" ? payload.updatedAt : "";
       const remoteState = payload.state && typeof payload.state === "object" ? payload.state : {};
       const remoteStateSignature = JSON.stringify(remoteState);
+      const localState = getCurrentSharedState();
+      const localHasState = hasAnySharedState(localState);
+      const localUpdatedAtMs = toEpochMs(getLocalSharedUpdatedAt());
+      const remoteUpdatedAtMs = toEpochMs(remoteUpdatedAt);
+      const preferLocalByHeuristic =
+        localHasState && (!localUpdatedAtMs || !remoteUpdatedAtMs) && hasLikelyNewerLocalData(localState, remoteState);
 
       if (remoteUpdatedAt && remoteUpdatedAt === lastRemoteUpdatedAt) {
         return;
       }
 
       if (!remoteUpdatedAt && remoteStateSignature === lastRemoteStateSignature) {
+        return;
+      }
+
+      if ((localHasState && localUpdatedAtMs && localUpdatedAtMs > remoteUpdatedAtMs) || preferLocalByHeuristic) {
+        lastRemoteUpdatedAt = remoteUpdatedAt;
+        lastRemoteStateSignature = remoteStateSignature;
+        scheduleSharedStatePush(0);
         return;
       }
 
@@ -397,9 +475,28 @@
     }, SYNC_POLL_MS);
   }
 
-  async function bootstrapSharedStateSync() {
-    if (!canUseRemoteSync()) {
+  function scheduleSyncBootstrapRetry(delay = SYNC_BOOTSTRAP_RETRY_MS) {
+    if (syncEnabled || syncBootstrapTimer || !canUseRemoteSync()) {
       return;
+    }
+
+    syncBootstrapTimer = global.setTimeout(() => {
+      syncBootstrapTimer = null;
+      bootstrapSharedStateSync();
+    }, Math.max(0, Number(delay) || 0));
+  }
+
+  async function bootstrapSharedStateSync() {
+    if (syncEnabled || !canUseRemoteSync()) {
+      return;
+    }
+    if (syncBootstrapInFlight) {
+      return;
+    }
+    syncBootstrapInFlight = true;
+    if (syncBootstrapTimer) {
+      global.clearTimeout(syncBootstrapTimer);
+      syncBootstrapTimer = null;
     }
 
     const localBefore = getCurrentSharedState();
@@ -413,22 +510,33 @@
         }
       });
       if (!response.ok) {
+        scheduleSyncBootstrapRetry();
         return;
       }
 
       const payload = await response.json().catch(() => null);
       if (!payload || typeof payload !== "object") {
+        scheduleSyncBootstrapRetry();
         return;
       }
 
       const remoteState = payload.state && typeof payload.state === "object" ? payload.state : {};
       lastRemoteUpdatedAt = typeof payload.updatedAt === "string" ? payload.updatedAt : "";
       lastRemoteStateSignature = JSON.stringify(remoteState);
+      const localUpdatedAtMs = toEpochMs(getLocalSharedUpdatedAt());
+      const remoteUpdatedAtMs = toEpochMs(lastRemoteUpdatedAt);
+      const localLooksNewerByTimestamp = hasAnySharedState(localBefore) && localUpdatedAtMs && localUpdatedAtMs > remoteUpdatedAtMs;
+      const localLooksNewerByHeuristic =
+        hasAnySharedState(localBefore) && (!localUpdatedAtMs || !remoteUpdatedAtMs) && hasLikelyNewerLocalData(localBefore, remoteState);
+      const localLooksNewer = localLooksNewerByTimestamp || localLooksNewerByHeuristic;
 
       syncEnabled = true;
 
-      if (lastRemoteUpdatedAt || Object.keys(remoteState).length) {
+      if (localLooksNewer) {
+        scheduleSharedStatePush(0);
+      } else if (lastRemoteUpdatedAt || Object.keys(remoteState).length) {
         applySharedStateFromRemote(remoteState);
+        global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: lastRemoteUpdatedAt } }));
       } else if (hasAnySharedState(localBefore)) {
         scheduleSharedStatePush(0);
       }
@@ -436,7 +544,33 @@
       startSyncPolling();
     } catch {
       // Keep local-only mode if shared sync endpoint is not present.
+      scheduleSyncBootstrapRetry();
+    } finally {
+      syncBootstrapInFlight = false;
     }
+  }
+
+  if (global && typeof global.addEventListener === "function") {
+    global.addEventListener("online", () => {
+      if (syncEnabled) {
+        refreshSharedStateFromServer();
+      } else {
+        scheduleSyncBootstrapRetry(0);
+      }
+    });
+  }
+
+  if (global.document && typeof global.document.addEventListener === "function") {
+    global.document.addEventListener("visibilitychange", () => {
+      if (global.document.hidden) {
+        return;
+      }
+      if (syncEnabled) {
+        refreshSharedStateFromServer();
+      } else {
+        scheduleSyncBootstrapRetry(0);
+      }
+    });
   }
 
   const ready = bootstrapSharedStateSync();

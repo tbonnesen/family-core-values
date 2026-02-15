@@ -8,6 +8,7 @@ const whyEl = document.getElementById("value-why");
 const looksLikeEl = document.getElementById("value-looks-like");
 const notLikeEl = document.getElementById("value-not-like");
 const byAgeEl = document.getElementById("value-by-age");
+const byAgeTitleEl = document.getElementById("value-by-age-title");
 const challengeEl = document.getElementById("value-challenge");
 const verseRefEl = document.getElementById("value-verse-ref");
 const verseTextEl = document.getElementById("value-verse-text");
@@ -15,6 +16,10 @@ const questionEl = document.getElementById("value-question");
 const otherValuesEl = document.getElementById("other-values");
 
 const VALUE_TRANSITION_KEY = "fcv_transition_value_slug";
+const STORAGE = fcv.STORAGE || {
+  PROFILES: "fcv_profiles_v2",
+  ACTIVE_PROFILE: "fcv_active_profile_v2"
+};
 let valueLinkTransitionBound = false;
 
 const slugify =
@@ -30,6 +35,29 @@ function setPanelStaggerIndexes(selector) {
   document.querySelectorAll(selector).forEach((element, index) => {
     element.style.setProperty("--panel-index", String(index));
   });
+}
+
+function safeGetItem(key) {
+  if (typeof fcv.safeGetItem === "function") {
+    return fcv.safeGetItem(key);
+  }
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function loadJSON(key, fallback) {
+  if (typeof fcv.loadJSON === "function") {
+    return fcv.loadJSON(key, fallback);
+  }
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
 }
 
 function markPageReady() {
@@ -110,6 +138,14 @@ function renderList(target, items) {
 
 function renderAgeExamples(target, items) {
   target.innerHTML = "";
+  if (!Array.isArray(items) || !items.length) {
+    const empty = document.createElement("p");
+    empty.className = "age-example-text";
+    empty.textContent = "No age examples configured for this profile.";
+    target.appendChild(empty);
+    return;
+  }
+
   items
     .slice()
     .sort((a, b) => a.age - b.age)
@@ -129,6 +165,52 @@ function renderAgeExamples(target, items) {
       row.appendChild(text);
       target.appendChild(row);
     });
+}
+
+function getActiveProfileContext() {
+  const profiles = loadJSON(STORAGE.PROFILES, []);
+  const activeProfileId = safeGetItem(STORAGE.ACTIVE_PROFILE);
+  if (!Array.isArray(profiles) || !profiles.length || !activeProfileId) {
+    return null;
+  }
+
+  const profile = profiles.find((item) => item && item.id === activeProfileId);
+  if (!profile) {
+    return null;
+  }
+
+  const ages = Array.isArray(profile.ages)
+    ? profile.ages.map((age) => Number(age)).filter((age) => Number.isFinite(age))
+    : [];
+
+  return {
+    name: typeof profile.name === "string" && profile.name.trim() ? profile.name.trim() : "Selected Child",
+    ages
+  };
+}
+
+function filterAgeExamplesByProfile(ageExamples, profileContext) {
+  const examples = Array.isArray(ageExamples) ? ageExamples : [];
+  if (!profileContext || !Array.isArray(profileContext.ages) || !profileContext.ages.length) {
+    return examples;
+  }
+
+  const allowed = new Set(profileContext.ages);
+  return examples.filter((entry) => allowed.has(Number(entry.age)));
+}
+
+function setByAgeTitle(profileContext) {
+  if (!byAgeTitleEl) {
+    return;
+  }
+
+  if (!profileContext || !Array.isArray(profileContext.ages) || !profileContext.ages.length) {
+    byAgeTitleEl.textContent = "By Age (1-7)";
+    return;
+  }
+
+  const ages = profileContext.ages.slice().sort((a, b) => a - b);
+  byAgeTitleEl.textContent = `By Age (${profileContext.name}: ${ages.join(", ")})`;
 }
 
 function getValueFromQuery() {
@@ -209,9 +291,13 @@ function renderValuePage() {
   verseTextEl.textContent = `"${value.verseText}"`;
   questionEl.textContent = value.familyQuestion;
 
+  const activeProfileContext = getActiveProfileContext();
+  const filteredAgeExamples = filterAgeExamplesByProfile(value.ageExamples || [], activeProfileContext);
+  setByAgeTitle(activeProfileContext);
+
   renderList(looksLikeEl, value.looksLike);
   renderList(notLikeEl, value.notLike);
-  renderAgeExamples(byAgeEl, value.ageExamples || []);
+  renderAgeExamples(byAgeEl, filteredAgeExamples);
   renderOtherValues(slug);
 
   document.title = `${value.name} | Family Core Values`;

@@ -62,6 +62,42 @@
         <a class="btn chore-chart-link" href="chore-chart.html">Open Chore Chart</a>
       </section>
 
+      <section class="panel panel--weekly-plan" aria-labelledby="weekly-plan-title">
+        <h2 id="weekly-plan-title">Personalized Weekly Plan</h2>
+        <p id="weekly-plan-meta" class="panel-meta"></p>
+        <p id="weekly-plan-summary" class="spotlight-message"></p>
+        <form id="weekly-plan-form" class="chore-form">
+          <input
+            id="weekly-plan-input"
+            type="text"
+            maxlength="96"
+            placeholder="Example: Practice respectful listening at dinner"
+            required
+          />
+          <select id="weekly-plan-value"></select>
+          <button class="btn btn--alt" type="submit">Add Plan Step</button>
+        </form>
+        <ul id="weekly-plan-list" class="chore-list"></ul>
+      </section>
+
+      <section class="panel panel--value-suggestions" aria-labelledby="value-suggestions-title">
+        <h2 id="value-suggestions-title">Value-To-Chore Suggestions</h2>
+        <p class="hint">Pick a value and quickly add suggested chores to any child.</p>
+        <div class="suggestions-controls">
+          <select id="value-suggest-value" aria-label="Select value for suggested chores"></select>
+          <select id="value-suggest-profile" aria-label="Select child profile for suggested chores"></select>
+        </div>
+        <ul id="value-suggest-list" class="suggestions-list"></ul>
+      </section>
+
+      <section class="panel panel--milestones" aria-labelledby="milestones-title">
+        <h2 id="milestones-title">Goal Milestones By Age</h2>
+        <p id="milestone-summary" class="spotlight-message"></p>
+        <label class="field-label" for="milestone-value-filter">Value Focus</label>
+        <select id="milestone-value-filter" aria-label="Filter milestones by value"></select>
+        <div id="milestone-list" class="milestones-list"></div>
+      </section>
+
       <section class="panel panel--memory" aria-labelledby="memory-title">
         <h2 id="memory-title">Memory Verse Mode</h2>
         <p id="memory-meta" class="panel-meta"></p>
@@ -176,6 +212,12 @@
           </div>
         </div>
         <p id="parent-active-summary" class="spotlight-message"></p>
+      </section>
+
+      <section class="panel panel--approvals" aria-labelledby="approvals-title">
+        <h2 id="approvals-title">Parent Approval Workflow</h2>
+        <p id="approvals-summary" class="panel-meta"></p>
+        <ul id="approvals-list" class="approval-list"></ul>
       </section>
 
       <section class="panel panel--profiles" aria-labelledby="profiles-title">

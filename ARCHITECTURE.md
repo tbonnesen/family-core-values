@@ -26,6 +26,10 @@
     - Scenario challenges
     - Verse memory mode + games
     - Chore assignment/mapping + completion tracking
+    - Chore approval workflow
+    - Personalized weekly plans
+    - Value-to-chore suggestions
+    - Goal milestones by age
     - Reflection journal
 - `value.js`
   - Value detail page rendering.
@@ -43,8 +47,14 @@
   - `{ id: string, chore: string, value: string, assignedProfileId: string }`
 - Profile chore completion (`fcv_profile_chore_completion_v2`)
   - `{ [profileId]: { [weekKey]: { [choreId]: boolean } } }`
+- Profile chore approval (`fcv_profile_chore_approval_v1`)
+  - `{ [profileId]: { [weekKey]: { [choreId]: { status: "pending", requestedAt: string } } } }`
+- Profile weekly plans (`fcv_profile_weekly_plans_v1`)
+  - `{ [profileId]: { [weekKey]: [{ id: string, text: string, value: string, done: boolean }] } }`
+- Profile goal milestones (`fcv_profile_goal_milestones_v1`)
+  - `{ [profileId]: { [milestoneId]: boolean } }`
 
-All page scripts normalize loaded data via `fcv-core.js` before rendering.
+Dashboard and chore chart scripts sanitize/normalize loaded data before rendering and prune stale chore references.
 
 ## UI Strategy
 - Shared visual system in `styles.css`.
@@ -58,6 +68,7 @@ All page scripts normalize loaded data via `fcv-core.js` before rendering.
 - Keep page scripts feature-focused and avoid duplicating helpers.
 - Reuse storage keys from `window.FCV.STORAGE` only.
 - Normalize persisted data before using it in render logic.
+- Keep profile-scoped state maps schema-safe and filtered to active profile IDs.
 
 ## Local-Network Sync
 - Start the app with:

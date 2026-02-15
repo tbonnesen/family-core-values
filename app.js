@@ -168,6 +168,21 @@ const DEFAULT_CHORE_MAPPINGS = [
   { chore: "Write one thank-you note", value: "Gratitude" }
 ];
 
+const VALUE_CHORE_SUGGESTIONS = {
+  Integrity: ["Return items to where they belong", "Tell the truth about mistakes quickly", "Finish promised task before screen time"],
+  Perseverance: ["Practice reading for 10 minutes", "Retry one hard puzzle before asking for help", "Finish homework checklist fully"],
+  "Intellectual Humility": [
+    "Ask one clarifying question before arguing",
+    "Say 'I was wrong' when corrected",
+    "Learn a new fact and share it at dinner"
+  ],
+  Stewardship: ["Turn off unused lights", "Water plants carefully", "Sort recycling and trash correctly"],
+  Respect: ["Use calm words in disagreement", "Wait your turn in conversations", "Knock before entering a room"],
+  Gratitude: ["Write one thank-you note", "Thank someone for unseen work", "Share one blessing at bedtime"],
+  Faith: ["Join a short family prayer", "Memorize one verse phrase", "Pray for someone else by name"],
+  Family: ["Help set and clear the table", "Tidy shared spaces before play", "Do one helpful act for a sibling"]
+};
+
 const STORAGE = fcv.STORAGE || {
   PROGRESS: "fcv_progress_v1",
   REFLECTION: "fcv_reflections_v1",
@@ -180,7 +195,10 @@ const STORAGE = fcv.STORAGE || {
   PROFILE_PROGRESS: "fcv_profile_progress_v2",
   PROFILE_REFLECTION: "fcv_profile_reflections_v2",
   PROFILE_MEMORY_GAME: "fcv_profile_memory_game_v2",
-  PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2"
+  PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2",
+  PROFILE_WEEKLY_PLANS: "fcv_profile_weekly_plans_v1",
+  PROFILE_GOAL_MILESTONES: "fcv_profile_goal_milestones_v1",
+  PROFILE_CHORE_APPROVAL: "fcv_profile_chore_approval_v1"
 };
 
 const valueGrid = document.getElementById("value-grid");
@@ -239,6 +257,10 @@ const parentAccuracy = document.getElementById("parent-accuracy");
 const parentChoresWeek = document.getElementById("parent-chores-week");
 const parentMemoryAccuracy = document.getElementById("parent-memory-accuracy");
 const parentActiveSummary = document.getElementById("parent-active-summary");
+const panelApprovals = document.querySelector(".panel--approvals");
+
+const approvalsSummary = document.getElementById("approvals-summary");
+const approvalsList = document.getElementById("approvals-list");
 
 const choreSummary = document.getElementById("chore-summary");
 const choreForm = document.getElementById("chore-form");
@@ -250,6 +272,22 @@ const choreList = document.getElementById("chore-list");
 const reflectionForm = document.getElementById("reflection-form");
 const reflectionInput = document.getElementById("reflection-input");
 const reflectionList = document.getElementById("reflection-list");
+
+const weeklyPlanMeta = document.getElementById("weekly-plan-meta");
+const weeklyPlanSummary = document.getElementById("weekly-plan-summary");
+const weeklyPlanForm = document.getElementById("weekly-plan-form");
+const weeklyPlanInput = document.getElementById("weekly-plan-input");
+const weeklyPlanValueSelect = document.getElementById("weekly-plan-value");
+const weeklyPlanList = document.getElementById("weekly-plan-list");
+
+const valueSuggestValueSelect = document.getElementById("value-suggest-value");
+const valueSuggestProfileSelect = document.getElementById("value-suggest-profile");
+const valueSuggestList = document.getElementById("value-suggest-list");
+
+const milestoneSummary = document.getElementById("milestone-summary");
+const milestoneValueFilter = document.getElementById("milestone-value-filter");
+const milestoneList = document.getElementById("milestone-list");
+
 const panelParent = document.querySelector(".panel--parent");
 const panelChallenge = document.querySelector(".panel--challenge");
 const memoryGamePanel = document.querySelector(".memory-game");
@@ -263,7 +301,15 @@ let profileProgressMap = {};
 let profileReflectionMap = {};
 let profileMemoryGameMap = {};
 let profileChoreCompletionMap = {};
+let profileWeeklyPlanMap = {};
+let profileGoalMilestoneMap = {};
+let profileChoreApprovalMap = {};
 let choreMappings = [];
+let activeMilestoneValueFilter = "all";
+let weeklyPlanControlsBound = false;
+let valueSuggestionControlsBound = false;
+let milestoneControlsBound = false;
+let parentApprovalControlsBound = false;
 
 let currentScenario = null;
 let memoryVisible = false;
@@ -488,6 +534,216 @@ function getDefaultMemoryStats() {
   };
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function toPlainObject(value) {
+  return isPlainObject(value) ? value : {};
+}
+
+function sanitizeProgress(raw) {
+  const base = getDefaultProgress();
+  const progress = toPlainObject(raw);
+  const attempts = Math.max(0, Number(progress.attempts) || 0);
+  const correct = Math.max(0, Number(progress.correct) || 0);
+  const streak = Math.max(0, Number(progress.streak) || 0);
+
+  return {
+    attempts,
+    correct: Math.min(correct, attempts),
+    streak,
+    lastPlayedDate: typeof progress.lastPlayedDate === "string" ? progress.lastPlayedDate : base.lastPlayedDate
+  };
+}
+
+function sanitizeMemoryStats(raw) {
+  const stats = toPlainObject(raw);
+  const attempts = Math.max(0, Number(stats.attempts) || 0);
+  const correct = Math.max(0, Number(stats.correct) || 0);
+  return {
+    attempts,
+    correct: Math.min(correct, attempts)
+  };
+}
+
+function sanitizeReflections(raw) {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .map((entry) => {
+      const text = typeof entry?.text === "string" ? entry.text.trim() : "";
+      if (!text) {
+        return null;
+      }
+      const date = typeof entry?.date === "string" ? entry.date : "";
+      return { text, date };
+    })
+    .filter(Boolean)
+    .slice(0, 30);
+}
+
+function sanitizeCompletionWeeks(raw) {
+  const byWeek = toPlainObject(raw);
+  const next = {};
+
+  Object.entries(byWeek).forEach(([weekKey, completion]) => {
+    if (!isPlainObject(completion)) {
+      return;
+    }
+    const cleanWeek = {};
+    Object.entries(completion).forEach(([choreId, done]) => {
+      if (done === true) {
+        cleanWeek[choreId] = true;
+      }
+    });
+    next[weekKey] = cleanWeek;
+  });
+
+  return next;
+}
+
+function sanitizeApprovalWeeks(raw) {
+  const byWeek = toPlainObject(raw);
+  const next = {};
+
+  Object.entries(byWeek).forEach(([weekKey, approvals]) => {
+    if (!isPlainObject(approvals)) {
+      return;
+    }
+    const cleanWeek = {};
+    Object.entries(approvals).forEach(([choreId, approval]) => {
+      if (!isPlainObject(approval) || approval.status !== "pending") {
+        return;
+      }
+      cleanWeek[choreId] = {
+        status: "pending",
+        requestedAt: typeof approval.requestedAt === "string" ? approval.requestedAt : ""
+      };
+    });
+    next[weekKey] = cleanWeek;
+  });
+
+  return next;
+}
+
+function sanitizeWeeklyPlanWeeks(raw) {
+  const byWeek = toPlainObject(raw);
+  const next = {};
+
+  Object.entries(byWeek).forEach(([weekKey, steps]) => {
+    if (!Array.isArray(steps)) {
+      return;
+    }
+    const cleanSteps = steps
+      .map((step) => {
+        const text = typeof step?.text === "string" ? step.text.trim() : "";
+        if (!text) {
+          return null;
+        }
+        const id = typeof step?.id === "string" && step.id ? step.id : createId("plan");
+        const value = typeof step?.value === "string" ? step.value : "";
+        return {
+          id,
+          text,
+          value,
+          done: Boolean(step?.done)
+        };
+      })
+      .filter(Boolean)
+      .slice(0, 40);
+    next[weekKey] = cleanSteps;
+  });
+
+  return next;
+}
+
+function sanitizeMilestoneState(raw) {
+  const state = toPlainObject(raw);
+  const next = {};
+  Object.entries(state).forEach(([milestoneId, done]) => {
+    if (done === true) {
+      next[milestoneId] = true;
+    }
+  });
+  return next;
+}
+
+function normalizeProfileScopedMap(rawMap, sanitizer, validProfileIds) {
+  const source = toPlainObject(rawMap);
+  const next = {};
+
+  validProfileIds.forEach((profileId) => {
+    next[profileId] = sanitizer(source[profileId]);
+  });
+
+  return next;
+}
+
+function normalizeProfileDataMaps() {
+  const validProfileIds = new Set(profiles.map((profile) => profile.id));
+  profileProgressMap = normalizeProfileScopedMap(profileProgressMap, sanitizeProgress, validProfileIds);
+  profileReflectionMap = normalizeProfileScopedMap(profileReflectionMap, sanitizeReflections, validProfileIds);
+  profileMemoryGameMap = normalizeProfileScopedMap(profileMemoryGameMap, sanitizeMemoryStats, validProfileIds);
+  profileChoreCompletionMap = normalizeProfileScopedMap(profileChoreCompletionMap, sanitizeCompletionWeeks, validProfileIds);
+  profileWeeklyPlanMap = normalizeProfileScopedMap(profileWeeklyPlanMap, sanitizeWeeklyPlanWeeks, validProfileIds);
+  profileGoalMilestoneMap = normalizeProfileScopedMap(profileGoalMilestoneMap, sanitizeMilestoneState, validProfileIds);
+  profileChoreApprovalMap = normalizeProfileScopedMap(profileChoreApprovalMap, sanitizeApprovalWeeks, validProfileIds);
+}
+
+function pruneStaleChoreStateReferences() {
+  const assignedByProfile = new Map();
+  profiles.forEach((profile) => {
+    assignedByProfile.set(
+      profile.id,
+      new Set(choreMappings.filter((mapping) => mapping.assignedProfileId === profile.id).map((mapping) => mapping.id))
+    );
+  });
+
+  let completionChanged = false;
+  Object.keys(profileChoreCompletionMap).forEach((profileId) => {
+    const allowedIds = assignedByProfile.get(profileId) || new Set();
+    const byWeek = toPlainObject(profileChoreCompletionMap[profileId]);
+    Object.keys(byWeek).forEach((weekKey) => {
+      const weekCompletion = toPlainObject(byWeek[weekKey]);
+      Object.keys(weekCompletion).forEach((choreId) => {
+        if (!allowedIds.has(choreId)) {
+          delete weekCompletion[choreId];
+          completionChanged = true;
+        }
+      });
+      byWeek[weekKey] = weekCompletion;
+    });
+    profileChoreCompletionMap[profileId] = byWeek;
+  });
+
+  let approvalChanged = false;
+  Object.keys(profileChoreApprovalMap).forEach((profileId) => {
+    const allowedIds = assignedByProfile.get(profileId) || new Set();
+    const byWeek = toPlainObject(profileChoreApprovalMap[profileId]);
+    Object.keys(byWeek).forEach((weekKey) => {
+      const weekApprovals = toPlainObject(byWeek[weekKey]);
+      Object.keys(weekApprovals).forEach((choreId) => {
+        if (!allowedIds.has(choreId)) {
+          delete weekApprovals[choreId];
+          approvalChanged = true;
+        }
+      });
+      byWeek[weekKey] = weekApprovals;
+    });
+    profileChoreApprovalMap[profileId] = byWeek;
+  });
+
+  if (completionChanged) {
+    saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
+  }
+  if (approvalChanged) {
+    saveJSON(STORAGE.PROFILE_CHORE_APPROVAL, profileChoreApprovalMap);
+  }
+}
+
 function getProfileIconOption(iconId) {
   return PROFILE_ICON_OPTIONS.find((icon) => icon.id === iconId) || PROFILE_ICON_OPTIONS[0];
 }
@@ -561,6 +817,9 @@ function applyDashboardAgeFilter() {
 
   if (panelParent) {
     panelParent.hidden = childMode;
+  }
+  if (panelApprovals) {
+    panelApprovals.hidden = childMode;
   }
 
   const hideComplex = childMode && primaryAge <= 3;
@@ -648,6 +907,15 @@ function ensureProfileData(profileId) {
   if (!profileChoreCompletionMap[profileId]) {
     profileChoreCompletionMap[profileId] = {};
   }
+  if (!profileWeeklyPlanMap[profileId]) {
+    profileWeeklyPlanMap[profileId] = {};
+  }
+  if (!profileGoalMilestoneMap[profileId]) {
+    profileGoalMilestoneMap[profileId] = {};
+  }
+  if (!profileChoreApprovalMap[profileId]) {
+    profileChoreApprovalMap[profileId] = {};
+  }
 }
 
 function saveProfileDataMaps() {
@@ -655,6 +923,9 @@ function saveProfileDataMaps() {
   saveJSON(STORAGE.PROFILE_REFLECTION, profileReflectionMap);
   saveJSON(STORAGE.PROFILE_MEMORY_GAME, profileMemoryGameMap);
   saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
+  saveJSON(STORAGE.PROFILE_WEEKLY_PLANS, profileWeeklyPlanMap);
+  saveJSON(STORAGE.PROFILE_GOAL_MILESTONES, profileGoalMilestoneMap);
+  saveJSON(STORAGE.PROFILE_CHORE_APPROVAL, profileChoreApprovalMap);
 }
 
 function migrateLegacyData(defaultProfileId) {
@@ -693,8 +964,12 @@ function initProfilesAndData() {
   profileReflectionMap = loadJSON(STORAGE.PROFILE_REFLECTION, {});
   profileMemoryGameMap = loadJSON(STORAGE.PROFILE_MEMORY_GAME, {});
   profileChoreCompletionMap = loadJSON(STORAGE.PROFILE_CHORE_COMPLETION, {});
+  profileWeeklyPlanMap = loadJSON(STORAGE.PROFILE_WEEKLY_PLANS, {});
+  profileGoalMilestoneMap = loadJSON(STORAGE.PROFILE_GOAL_MILESTONES, {});
+  profileChoreApprovalMap = loadJSON(STORAGE.PROFILE_CHORE_APPROVAL, {});
 
   migrateLegacyData(profiles[0].id);
+  normalizeProfileDataMaps();
 
   profiles.forEach((profile) => ensureProfileData(profile.id));
 
@@ -749,17 +1024,36 @@ function removeActiveProfile() {
   delete profileReflectionMap[removedId];
   delete profileMemoryGameMap[removedId];
   delete profileChoreCompletionMap[removedId];
+  delete profileWeeklyPlanMap[removedId];
+  delete profileGoalMilestoneMap[removedId];
+  delete profileChoreApprovalMap[removedId];
 
   Object.keys(profileChoreCompletionMap).forEach((profileId) => {
-    const completionByWeek = profileChoreCompletionMap[profileId];
+    const completionByWeek = toPlainObject(profileChoreCompletionMap[profileId]);
     Object.keys(completionByWeek).forEach((weekKey) => {
-      const weekCompletion = completionByWeek[weekKey];
+      const weekCompletion = toPlainObject(completionByWeek[weekKey]);
       removedChoreIds.forEach((choreId) => {
         if (weekCompletion[choreId]) {
           delete weekCompletion[choreId];
         }
       });
+      completionByWeek[weekKey] = weekCompletion;
     });
+    profileChoreCompletionMap[profileId] = completionByWeek;
+  });
+
+  Object.keys(profileChoreApprovalMap).forEach((profileId) => {
+    const approvalsByWeek = toPlainObject(profileChoreApprovalMap[profileId]);
+    Object.keys(approvalsByWeek).forEach((weekKey) => {
+      const weekApprovals = toPlainObject(approvalsByWeek[weekKey]);
+      removedChoreIds.forEach((choreId) => {
+        if (weekApprovals[choreId]) {
+          delete weekApprovals[choreId];
+        }
+      });
+      approvalsByWeek[weekKey] = weekApprovals;
+    });
+    profileChoreApprovalMap[profileId] = approvalsByWeek;
   });
 
   saveJSON(STORAGE.PROFILES, profiles);
@@ -783,6 +1077,7 @@ function setActiveProfile(profileId, options = {}) {
   renderProfileList();
   renderDashboardFilterOptions();
   populateChoreProfileSelect();
+  populateValueSuggestionProfileSelect();
 
   if (dashboardFilterProfileId !== "all" && dashboardFilterProfileId !== profileId) {
     dashboardFilterProfileId = resolveDashboardFilterProfileId(profileId);
@@ -797,8 +1092,7 @@ function setActiveProfile(profileId, options = {}) {
   loadReflections();
   renderMemoryVerse();
   renderMemoryGameScore();
-  renderChoreMappings();
-  renderParentDashboard();
+  renderProfileDrivenPanels();
   applyDashboardAgeFilter();
 
   if (refreshScenario) {
@@ -974,6 +1268,7 @@ function initProfileControls() {
 
     renderProfileSelect();
     renderProfileList();
+    renderGoalMilestones();
     renderParentDashboard();
   });
 
@@ -1012,6 +1307,8 @@ function initProfileControls() {
     renderProfileIconSelect();
     renderProfileList();
     populateChoreProfileSelect();
+    populateValueSuggestionProfileSelect();
+    renderParentApprovalQueue();
     renderParentDashboard();
   });
 }
@@ -1138,24 +1435,113 @@ function getProfileWeekCompletion(profileId) {
   return profileChoreCompletionMap[profileId][weekKey];
 }
 
+function getProfileWeekApprovals(profileId) {
+  const weekKey = getWeekKey();
+  if (!profileChoreApprovalMap[profileId]) {
+    profileChoreApprovalMap[profileId] = {};
+  }
+  if (!profileChoreApprovalMap[profileId][weekKey]) {
+    profileChoreApprovalMap[profileId][weekKey] = {};
+  }
+  return profileChoreApprovalMap[profileId][weekKey];
+}
+
+function isChoreCompleted(profileId, mappingId) {
+  if (!profileId || !mappingId) {
+    return false;
+  }
+  const completion = getProfileWeekCompletion(profileId);
+  return Boolean(completion[mappingId]);
+}
+
 function isChoreCompletedForActiveProfile(mappingId) {
   const activeProfile = getActiveProfile();
   if (!activeProfile) {
     return false;
   }
-  const completion = getProfileWeekCompletion(activeProfile.id);
-  return Boolean(completion[mappingId]);
+  return isChoreCompleted(activeProfile.id, mappingId);
 }
 
-function setChoreCompletedForActiveProfile(mappingId, completed) {
-  const activeProfile = getActiveProfile();
-  if (!activeProfile) {
+function setChoreCompleted(profileId, mappingId, completed) {
+  if (!profileId || !mappingId) {
     return;
   }
 
-  const completion = getProfileWeekCompletion(activeProfile.id);
-  completion[mappingId] = completed;
+  const completion = getProfileWeekCompletion(profileId);
+  if (completed) {
+    completion[mappingId] = true;
+  } else if (completion[mappingId]) {
+    delete completion[mappingId];
+  }
   saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
+}
+
+function getChoreApprovalStatus(profileId, mappingId) {
+  if (!profileId || !mappingId) {
+    return "";
+  }
+  const approvals = getProfileWeekApprovals(profileId);
+  return approvals[mappingId]?.status || "";
+}
+
+function requestChoreApprovalForProfile(profileId, mappingId) {
+  if (!profileId || !mappingId) {
+    return;
+  }
+  if (isChoreCompleted(profileId, mappingId)) {
+    return;
+  }
+  const approvals = getProfileWeekApprovals(profileId);
+  approvals[mappingId] = {
+    status: "pending",
+    requestedAt: new Date().toISOString()
+  };
+  saveJSON(STORAGE.PROFILE_CHORE_APPROVAL, profileChoreApprovalMap);
+}
+
+function clearChoreApprovalForProfile(profileId, mappingId) {
+  if (!profileId || !mappingId) {
+    return;
+  }
+  const approvals = getProfileWeekApprovals(profileId);
+  if (approvals[mappingId]) {
+    delete approvals[mappingId];
+    saveJSON(STORAGE.PROFILE_CHORE_APPROVAL, profileChoreApprovalMap);
+  }
+}
+
+function getPendingApprovals() {
+  const pending = [];
+  const weekKey = getWeekKey();
+  let didMutate = false;
+  profiles.forEach((profile) => {
+    const approvalsByWeek = profileChoreApprovalMap[profile.id] || {};
+    const weekApprovals = approvalsByWeek[weekKey] || {};
+    Object.entries(weekApprovals).forEach(([mappingId, approval]) => {
+      if (!approval || approval.status !== "pending") {
+        if (weekApprovals[mappingId]) {
+          delete weekApprovals[mappingId];
+          didMutate = true;
+        }
+        return;
+      }
+      const mapping = choreMappings.find((item) => item.id === mappingId && item.assignedProfileId === profile.id);
+      if (!mapping) {
+        delete weekApprovals[mappingId];
+        didMutate = true;
+        return;
+      }
+      pending.push({
+        profile,
+        mapping,
+        requestedAt: approval.requestedAt || ""
+      });
+    });
+  });
+  if (didMutate) {
+    saveJSON(STORAGE.PROFILE_CHORE_APPROVAL, profileChoreApprovalMap);
+  }
+  return pending.sort((a, b) => (a.requestedAt > b.requestedAt ? -1 : 1));
 }
 
 function getAllVerseWords() {
@@ -1229,6 +1615,14 @@ function setSpotlight() {
   spotlightMessage.textContent = `Today: ${choice.challenge}`;
 }
 
+function getValueOfWeek() {
+  if (!values.length) {
+    return null;
+  }
+  const weekIndex = getYearWeekIndex();
+  return values[weekIndex % values.length];
+}
+
 function setValueOfWeek() {
   if (!weeklyLabel || !weeklyValue || !weeklyMessage || !weeklyLink) {
     return;
@@ -1243,7 +1637,10 @@ function setValueOfWeek() {
   }
 
   const weekIndex = getYearWeekIndex();
-  const choice = values[weekIndex % values.length];
+  const choice = getValueOfWeek();
+  if (!choice) {
+    return;
+  }
   const slug = choice.slug || slugify(choice.name);
 
   weeklyLabel.textContent = `Week ${weekIndex + 1} of ${new Date().getFullYear()}`;
@@ -1685,9 +2082,10 @@ function renderChoreMappings() {
     const value = getValueByIdentifier(mapping.value);
     const toneClass = getValueToneClass(mapping.value);
     const completed = isChoreCompletedForActiveProfile(mapping.id);
+    const pending = getChoreApprovalStatus(activeProfile.id, mapping.id) === "pending";
 
     const item = document.createElement("li");
-    item.className = `chore-item${completed ? " is-complete" : ""}`;
+    item.className = `chore-item${completed ? " is-complete" : ""}${pending ? " is-pending" : ""}`;
 
     const choreName = document.createElement("span");
     choreName.className = "chore-name";
@@ -1706,11 +2104,16 @@ function renderChoreMappings() {
       valueTag.textContent = mapping.value;
     }
 
+    const statusTag = document.createElement("span");
+    statusTag.className = `chore-status${completed ? " is-complete" : pending ? " is-pending" : ""}`;
+    statusTag.textContent = completed ? "Approved" : pending ? "Pending Approval" : "Open";
+
     const completeBtn = document.createElement("button");
     completeBtn.type = "button";
-    completeBtn.className = "chore-complete";
+    completeBtn.className = `chore-complete${pending ? " is-pending" : ""}`;
     completeBtn.dataset.id = mapping.id;
-    completeBtn.textContent = completed ? "Completed" : "Mark Done";
+    completeBtn.textContent = completed ? "Completed" : pending ? "Pending Approval" : "Request Approval";
+    completeBtn.disabled = completed || pending;
 
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
@@ -1720,6 +2123,7 @@ function renderChoreMappings() {
 
     item.appendChild(choreName);
     item.appendChild(valueTag);
+    item.appendChild(statusTag);
     item.appendChild(completeBtn);
     item.appendChild(removeBtn);
     choreList.appendChild(item);
@@ -1737,6 +2141,7 @@ function initChoreMapping() {
   populateChoreProfileSelect();
   choreMappings = loadChoreMappings();
   saveChoreMappings();
+  pruneStaleChoreStateReferences();
   renderChoreMappings();
 
   choreForm.addEventListener("submit", (event) => {
@@ -1767,9 +2172,13 @@ function initChoreMapping() {
     const completeBtn = event.target.closest("button.chore-complete");
     if (completeBtn) {
       const { id } = completeBtn.dataset;
-      const completed = isChoreCompletedForActiveProfile(id);
-      setChoreCompletedForActiveProfile(id, !completed);
+      const activeProfile = getActiveProfile();
+      if (!activeProfile || !id) {
+        return;
+      }
+      requestChoreApprovalForProfile(activeProfile.id, id);
       renderChoreMappings();
+      renderParentApprovalQueue();
       renderParentDashboard();
       return;
     }
@@ -1783,19 +2192,715 @@ function initChoreMapping() {
     choreMappings = choreMappings.filter((item) => item.id !== id);
 
     Object.keys(profileChoreCompletionMap).forEach((profileId) => {
-      const byWeek = profileChoreCompletionMap[profileId];
+      const byWeek = toPlainObject(profileChoreCompletionMap[profileId]);
       Object.keys(byWeek).forEach((weekKey) => {
-        if (byWeek[weekKey][id]) {
-          delete byWeek[weekKey][id];
+        const weekCompletion = toPlainObject(byWeek[weekKey]);
+        if (weekCompletion[id]) {
+          delete weekCompletion[id];
         }
+        byWeek[weekKey] = weekCompletion;
       });
+      profileChoreCompletionMap[profileId] = byWeek;
+    });
+
+    Object.keys(profileChoreApprovalMap).forEach((profileId) => {
+      const byWeek = toPlainObject(profileChoreApprovalMap[profileId]);
+      Object.keys(byWeek).forEach((weekKey) => {
+        const weekApprovals = toPlainObject(byWeek[weekKey]);
+        if (weekApprovals[id]) {
+          delete weekApprovals[id];
+        }
+        byWeek[weekKey] = weekApprovals;
+      });
+      profileChoreApprovalMap[profileId] = byWeek;
     });
 
     saveChoreMappings();
     saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
+    saveJSON(STORAGE.PROFILE_CHORE_APPROVAL, profileChoreApprovalMap);
     renderChoreMappings();
+    renderParentApprovalQueue();
     renderParentDashboard();
   });
+}
+
+function populateWeeklyPlanValueSelect(selectedValue = "") {
+  if (!weeklyPlanValueSelect) {
+    return;
+  }
+
+  weeklyPlanValueSelect.innerHTML = "";
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value.name;
+    option.textContent = value.name;
+    weeklyPlanValueSelect.appendChild(option);
+  });
+
+  const weekly = getValueOfWeek();
+  const fallback = weekly?.name || values[0]?.name || "";
+  const hasSelected = selectedValue && values.some((value) => value.name === selectedValue);
+  weeklyPlanValueSelect.value = hasSelected ? selectedValue : fallback;
+}
+
+function getProfileWeekPlan(profileId) {
+  if (!profileId) {
+    return [];
+  }
+  const weekKey = getWeekKey();
+  if (!profileWeeklyPlanMap[profileId]) {
+    profileWeeklyPlanMap[profileId] = {};
+  }
+  if (!Array.isArray(profileWeeklyPlanMap[profileId][weekKey])) {
+    profileWeeklyPlanMap[profileId][weekKey] = [];
+  }
+  return profileWeeklyPlanMap[profileId][weekKey];
+}
+
+function buildDefaultWeeklyPlan(profile) {
+  const weeklyValue = getValueOfWeek();
+  const primaryAge = getProfilePrimaryAge(profile);
+  const suggestionSource = weeklyValue ? VALUE_CHORE_SUGGESTIONS[weeklyValue.name] || [] : [];
+  const ageExample =
+    weeklyValue && Array.isArray(weeklyValue.ageExamples)
+      ? weeklyValue.ageExamples.find((entry) => Number(entry.age) === primaryAge)?.example || ""
+      : "";
+
+  const defaultSteps = [];
+  if (weeklyValue) {
+    defaultSteps.push({
+      id: createId("plan"),
+      text: `Practice this week\u2019s value: ${weeklyValue.name}.`,
+      value: weeklyValue.name,
+      done: false
+    });
+    if (suggestionSource[0]) {
+      defaultSteps.push({
+        id: createId("plan"),
+        text: suggestionSource[0],
+        value: weeklyValue.name,
+        done: false
+      });
+    }
+  }
+  if (ageExample) {
+    defaultSteps.push({
+      id: createId("plan"),
+      text: `Age ${primaryAge} focus: ${ageExample}`,
+      value: weeklyValue?.name || "",
+      done: false
+    });
+  }
+  if (!defaultSteps.length) {
+    defaultSteps.push({
+      id: createId("plan"),
+      text: "Choose one core value and practice it together each day this week.",
+      value: values[0]?.name || "",
+      done: false
+    });
+  }
+  return defaultSteps.slice(0, 3);
+}
+
+function ensureWeeklyPlanSeed(profile) {
+  if (!profile) {
+    return [];
+  }
+
+  const weekKey = getWeekKey();
+  if (!profileWeeklyPlanMap[profile.id]) {
+    profileWeeklyPlanMap[profile.id] = {};
+  }
+  if (!Array.isArray(profileWeeklyPlanMap[profile.id][weekKey])) {
+    profileWeeklyPlanMap[profile.id][weekKey] = buildDefaultWeeklyPlan(profile);
+    saveJSON(STORAGE.PROFILE_WEEKLY_PLANS, profileWeeklyPlanMap);
+  }
+  return profileWeeklyPlanMap[profile.id][weekKey];
+}
+
+function renderWeeklyPlan() {
+  if (!weeklyPlanMeta || !weeklyPlanSummary || !weeklyPlanList || !weeklyPlanValueSelect) {
+    return;
+  }
+
+  const activeProfile = getActiveProfile();
+  weeklyPlanList.innerHTML = "";
+
+  if (!activeProfile) {
+    weeklyPlanMeta.textContent = "";
+    weeklyPlanSummary.textContent = "";
+    return;
+  }
+
+  populateWeeklyPlanValueSelect(weeklyPlanValueSelect.value);
+  const plan = ensureWeeklyPlanSeed(activeProfile);
+  const weekNumber = getYearWeekIndex() + 1;
+  const completedCount = plan.filter((step) => Boolean(step.done)).length;
+
+  weeklyPlanMeta.textContent = `${activeProfile.name} \u2022 Week ${weekNumber} \u2022 ${getWeekKey()}`;
+  weeklyPlanSummary.textContent = `${completedCount}/${plan.length} plan steps completed`;
+
+  if (!plan.length) {
+    const empty = document.createElement("li");
+    empty.className = "chore-empty";
+    empty.textContent = "No plan steps yet. Add one above.";
+    weeklyPlanList.appendChild(empty);
+    return;
+  }
+
+  plan.forEach((step) => {
+    const value = getValueByIdentifier(step.value);
+    const toneClass = getValueToneClass(step.value);
+    const item = document.createElement("li");
+    item.className = `chore-item weekly-plan-item${step.done ? " is-complete" : ""}`;
+
+    const text = document.createElement("span");
+    text.className = "chore-name";
+    text.textContent = step.text;
+
+    const valueTag = document.createElement("span");
+    valueTag.className = "chore-value";
+    if (toneClass) {
+      valueTag.classList.add(toneClass);
+    }
+    valueTag.textContent = value ? value.name : step.value || "General";
+
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "chore-complete weekly-plan-toggle";
+    toggleBtn.dataset.id = step.id;
+    toggleBtn.textContent = step.done ? "Done" : "Mark Done";
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "chore-remove weekly-plan-remove";
+    removeBtn.dataset.id = step.id;
+    removeBtn.textContent = "Remove";
+
+    item.appendChild(text);
+    item.appendChild(valueTag);
+    item.appendChild(toggleBtn);
+    item.appendChild(removeBtn);
+    weeklyPlanList.appendChild(item);
+  });
+}
+
+function initWeeklyPlanControls() {
+  if (!weeklyPlanForm || !weeklyPlanInput || !weeklyPlanValueSelect || !weeklyPlanList) {
+    return;
+  }
+
+  populateWeeklyPlanValueSelect(weeklyPlanValueSelect.value);
+  renderWeeklyPlan();
+
+  if (weeklyPlanControlsBound) {
+    return;
+  }
+
+  weeklyPlanForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const activeProfile = getActiveProfile();
+    const text = weeklyPlanInput.value.trim();
+    const value = weeklyPlanValueSelect.value;
+    if (!activeProfile || !text) {
+      return;
+    }
+
+    const plan = getProfileWeekPlan(activeProfile.id);
+    plan.unshift({
+      id: createId("plan"),
+      text,
+      value,
+      done: false
+    });
+    saveJSON(STORAGE.PROFILE_WEEKLY_PLANS, profileWeeklyPlanMap);
+    weeklyPlanInput.value = "";
+    renderWeeklyPlan();
+  });
+
+  weeklyPlanList.addEventListener("click", (event) => {
+    const activeProfile = getActiveProfile();
+    if (!activeProfile) {
+      return;
+    }
+
+    const toggleBtn = event.target.closest("button.weekly-plan-toggle");
+    if (toggleBtn) {
+      const { id } = toggleBtn.dataset;
+      const plan = getProfileWeekPlan(activeProfile.id);
+      const step = plan.find((item) => item.id === id);
+      if (!step) {
+        return;
+      }
+      step.done = !step.done;
+      saveJSON(STORAGE.PROFILE_WEEKLY_PLANS, profileWeeklyPlanMap);
+      renderWeeklyPlan();
+      return;
+    }
+
+    const removeBtn = event.target.closest("button.weekly-plan-remove");
+    if (!removeBtn) {
+      return;
+    }
+
+    const { id } = removeBtn.dataset;
+    const plan = getProfileWeekPlan(activeProfile.id);
+    const nextPlan = plan.filter((item) => item.id !== id);
+    profileWeeklyPlanMap[activeProfile.id][getWeekKey()] = nextPlan;
+    saveJSON(STORAGE.PROFILE_WEEKLY_PLANS, profileWeeklyPlanMap);
+    renderWeeklyPlan();
+  });
+
+  weeklyPlanControlsBound = true;
+}
+
+function populateValueSuggestionValueSelect() {
+  if (!valueSuggestValueSelect) {
+    return;
+  }
+
+  const existing = valueSuggestValueSelect.value;
+  valueSuggestValueSelect.innerHTML = "";
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value.name;
+    option.textContent = value.name;
+    valueSuggestValueSelect.appendChild(option);
+  });
+
+  const fallback = getValueOfWeek()?.name || values[0]?.name || "";
+  const isValid = existing && values.some((value) => value.name === existing);
+  valueSuggestValueSelect.value = isValid ? existing : fallback;
+}
+
+function populateValueSuggestionProfileSelect() {
+  if (!valueSuggestProfileSelect) {
+    return;
+  }
+
+  const existing = valueSuggestProfileSelect.value;
+  valueSuggestProfileSelect.innerHTML = "";
+  profiles.forEach((profile) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name}`;
+    valueSuggestProfileSelect.appendChild(option);
+  });
+
+  const hasExisting = existing && profiles.some((profile) => profile.id === existing);
+  if (hasExisting) {
+    valueSuggestProfileSelect.value = existing;
+  } else if (activeProfileId && profiles.some((profile) => profile.id === activeProfileId)) {
+    valueSuggestProfileSelect.value = activeProfileId;
+  } else if (profiles[0]) {
+    valueSuggestProfileSelect.value = profiles[0].id;
+  }
+}
+
+function renderValueToChoreSuggestions() {
+  if (!valueSuggestValueSelect || !valueSuggestProfileSelect || !valueSuggestList) {
+    return;
+  }
+
+  populateValueSuggestionValueSelect();
+  populateValueSuggestionProfileSelect();
+  valueSuggestList.innerHTML = "";
+
+  if (!values.length || !profiles.length) {
+    const empty = document.createElement("li");
+    empty.className = "chore-empty";
+    empty.textContent = "Add at least one value and one child profile to use suggestions.";
+    valueSuggestList.appendChild(empty);
+    return;
+  }
+
+  const selectedValue = valueSuggestValueSelect.value;
+  const selectedProfileId = valueSuggestProfileSelect.value;
+  const suggestions = VALUE_CHORE_SUGGESTIONS[selectedValue] || [];
+
+  if (!suggestions.length) {
+    const empty = document.createElement("li");
+    empty.className = "chore-empty";
+    empty.textContent = "No suggestions available for this value yet.";
+    valueSuggestList.appendChild(empty);
+    return;
+  }
+
+  suggestions.forEach((suggestion) => {
+    const isAlreadyMapped = choreMappings.some(
+      (mapping) =>
+        mapping.assignedProfileId === selectedProfileId &&
+        normalizeValue(mapping.value) === normalizeValue(selectedValue) &&
+        normalizeValue(mapping.chore) === normalizeValue(suggestion)
+    );
+
+    const item = document.createElement("li");
+    item.className = "suggestion-item";
+
+    const text = document.createElement("span");
+    text.className = "suggestion-text";
+    text.textContent = suggestion;
+
+    const addBtn = document.createElement("button");
+    addBtn.type = "button";
+    addBtn.className = "btn btn--small";
+    addBtn.dataset.chore = suggestion;
+    addBtn.dataset.value = selectedValue;
+    addBtn.dataset.profileId = selectedProfileId;
+    addBtn.textContent = isAlreadyMapped ? "Added" : "Add";
+    addBtn.disabled = isAlreadyMapped;
+
+    item.appendChild(text);
+    item.appendChild(addBtn);
+    valueSuggestList.appendChild(item);
+  });
+}
+
+function initValueToChoreSuggestions() {
+  if (!valueSuggestValueSelect || !valueSuggestProfileSelect || !valueSuggestList) {
+    return;
+  }
+
+  renderValueToChoreSuggestions();
+
+  if (valueSuggestionControlsBound) {
+    return;
+  }
+
+  valueSuggestValueSelect.addEventListener("change", () => {
+    renderValueToChoreSuggestions();
+  });
+
+  valueSuggestProfileSelect.addEventListener("change", () => {
+    renderValueToChoreSuggestions();
+  });
+
+  valueSuggestList.addEventListener("click", (event) => {
+    const addBtn = event.target.closest("button[data-chore][data-value][data-profile-id]");
+    if (!addBtn) {
+      return;
+    }
+
+    const chore = addBtn.dataset.chore || "";
+    const value = addBtn.dataset.value || "";
+    const assignedProfileId = addBtn.dataset.profileId || "";
+    if (!chore || !value || !assignedProfileId) {
+      return;
+    }
+
+    choreMappings.unshift({
+      id: createId("chore"),
+      chore,
+      value,
+      assignedProfileId
+    });
+    saveChoreMappings();
+    renderChoreMappings();
+    renderValueToChoreSuggestions();
+    renderParentDashboard();
+    renderParentApprovalQueue();
+  });
+
+  valueSuggestionControlsBound = true;
+}
+
+function populateMilestoneValueFilter() {
+  if (!milestoneValueFilter) {
+    return;
+  }
+
+  const existing = milestoneValueFilter.value || activeMilestoneValueFilter || "all";
+  milestoneValueFilter.innerHTML = "";
+
+  const allOption = document.createElement("option");
+  allOption.value = "all";
+  allOption.textContent = "All Values";
+  milestoneValueFilter.appendChild(allOption);
+
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value.name;
+    option.textContent = value.name;
+    milestoneValueFilter.appendChild(option);
+  });
+
+  const valid = existing === "all" || values.some((value) => value.name === existing);
+  activeMilestoneValueFilter = valid ? existing : "all";
+  milestoneValueFilter.value = activeMilestoneValueFilter;
+}
+
+function getMilestoneEntriesForProfile(profile, valueFilter = "all") {
+  if (!profile) {
+    return [];
+  }
+
+  const ages = Array.isArray(profile.ages) && profile.ages.length ? profile.ages.slice().sort((a, b) => a - b) : [];
+  if (!ages.length) {
+    return [];
+  }
+
+  const entries = [];
+  values.forEach((value) => {
+    if (valueFilter !== "all" && value.name !== valueFilter) {
+      return;
+    }
+    const slug = value.slug || slugify(value.name);
+    ages.forEach((age) => {
+      const ageExample = Array.isArray(value.ageExamples)
+        ? value.ageExamples.find((entry) => Number(entry.age) === Number(age))
+        : null;
+      if (!ageExample || !ageExample.example) {
+        return;
+      }
+      entries.push({
+        id: `${slug}-age-${age}`,
+        age,
+        value,
+        text: ageExample.example
+      });
+    });
+  });
+  return entries;
+}
+
+function renderGoalMilestones() {
+  if (!milestoneSummary || !milestoneValueFilter || !milestoneList) {
+    return;
+  }
+
+  const activeProfile = getActiveProfile();
+  milestoneList.innerHTML = "";
+
+  if (!activeProfile) {
+    milestoneSummary.textContent = "";
+    return;
+  }
+
+  populateMilestoneValueFilter();
+  const entries = getMilestoneEntriesForProfile(activeProfile, activeMilestoneValueFilter);
+  const completion = profileGoalMilestoneMap[activeProfile.id] || {};
+  const completedCount = entries.filter((entry) => Boolean(completion[entry.id])).length;
+  const ageLabel = activeProfile.ages && activeProfile.ages.length ? activeProfile.ages.join(", ") : "none";
+  milestoneSummary.textContent = `${activeProfile.name} (ages ${ageLabel}) \u2022 ${completedCount}/${entries.length} milestones reached`;
+
+  if (!entries.length) {
+    const empty = document.createElement("p");
+    empty.className = "chore-empty";
+    empty.textContent = "No milestone examples found for the selected value and ages.";
+    milestoneList.appendChild(empty);
+    return;
+  }
+
+  const grouped = new Map();
+  entries.forEach((entry) => {
+    if (!grouped.has(entry.age)) {
+      grouped.set(entry.age, []);
+    }
+    grouped.get(entry.age).push(entry);
+  });
+
+  Array.from(grouped.keys())
+    .sort((a, b) => a - b)
+    .forEach((age) => {
+      const group = document.createElement("section");
+      group.className = "milestone-group";
+
+      const heading = document.createElement("h3");
+      heading.textContent = `Age ${age}`;
+      group.appendChild(heading);
+
+      grouped.get(age).forEach((entry) => {
+        const isComplete = Boolean(completion[entry.id]);
+        const toneClass = getValueToneClass(entry.value.name);
+
+        const row = document.createElement("article");
+        row.className = `milestone-item${isComplete ? " is-complete" : ""}`;
+
+        const textWrap = document.createElement("div");
+        textWrap.className = "milestone-copy";
+
+        const valueChip = document.createElement("span");
+        valueChip.className = "milestone-value-chip";
+        if (toneClass) {
+          valueChip.classList.add(toneClass);
+        }
+        valueChip.textContent = entry.value.name;
+
+        const text = document.createElement("p");
+        text.className = "milestone-text";
+        text.textContent = entry.text;
+
+        const toggleBtn = document.createElement("button");
+        toggleBtn.type = "button";
+        toggleBtn.className = "chore-complete milestone-toggle";
+        toggleBtn.dataset.id = entry.id;
+        toggleBtn.textContent = isComplete ? "Reached" : "Mark Reached";
+
+        textWrap.appendChild(valueChip);
+        textWrap.appendChild(text);
+        row.appendChild(textWrap);
+        row.appendChild(toggleBtn);
+        group.appendChild(row);
+      });
+
+      milestoneList.appendChild(group);
+    });
+}
+
+function initGoalMilestones() {
+  if (!milestoneSummary || !milestoneValueFilter || !milestoneList) {
+    return;
+  }
+
+  renderGoalMilestones();
+
+  if (milestoneControlsBound) {
+    return;
+  }
+
+  milestoneValueFilter.addEventListener("change", () => {
+    activeMilestoneValueFilter = milestoneValueFilter.value || "all";
+    renderGoalMilestones();
+  });
+
+  milestoneList.addEventListener("click", (event) => {
+    const button = event.target.closest("button.milestone-toggle");
+    if (!button) {
+      return;
+    }
+    const activeProfile = getActiveProfile();
+    if (!activeProfile) {
+      return;
+    }
+
+    const milestoneId = button.dataset.id;
+    if (!milestoneId) {
+      return;
+    }
+    if (!profileGoalMilestoneMap[activeProfile.id]) {
+      profileGoalMilestoneMap[activeProfile.id] = {};
+    }
+
+    profileGoalMilestoneMap[activeProfile.id][milestoneId] = !profileGoalMilestoneMap[activeProfile.id][milestoneId];
+    saveJSON(STORAGE.PROFILE_GOAL_MILESTONES, profileGoalMilestoneMap);
+    renderGoalMilestones();
+  });
+
+  milestoneControlsBound = true;
+}
+
+function renderParentApprovalQueue() {
+  if (!approvalsSummary || !approvalsList) {
+    return;
+  }
+
+  approvalsList.innerHTML = "";
+  const pending = getPendingApprovals();
+  approvalsSummary.textContent = `${pending.length} pending chore approvals this week`;
+
+  if (!pending.length) {
+    const empty = document.createElement("li");
+    empty.className = "chore-empty";
+    empty.textContent = "No pending approvals right now.";
+    approvalsList.appendChild(empty);
+    return;
+  }
+
+  pending.forEach((entry) => {
+    const { profile, mapping } = entry;
+    const value = getValueByIdentifier(mapping.value);
+    const toneClass = getValueToneClass(mapping.value);
+
+    const item = document.createElement("li");
+    item.className = "approval-item";
+
+    const choreName = document.createElement("p");
+    choreName.className = "approval-title";
+    choreName.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name}: ${mapping.chore}`;
+
+    const meta = document.createElement("div");
+    meta.className = "approval-meta";
+
+    const valueTag = document.createElement("span");
+    valueTag.className = "chore-value";
+    if (toneClass) {
+      valueTag.classList.add(toneClass);
+    }
+    valueTag.textContent = value ? value.name : mapping.value;
+    meta.appendChild(valueTag);
+
+    const actions = document.createElement("div");
+    actions.className = "approval-actions";
+
+    const approveBtn = document.createElement("button");
+    approveBtn.type = "button";
+    approveBtn.className = "chore-complete approval-approve";
+    approveBtn.dataset.profileId = profile.id;
+    approveBtn.dataset.id = mapping.id;
+    approveBtn.textContent = "Approve";
+
+    const rejectBtn = document.createElement("button");
+    rejectBtn.type = "button";
+    rejectBtn.className = "chore-remove approval-reject";
+    rejectBtn.dataset.profileId = profile.id;
+    rejectBtn.dataset.id = mapping.id;
+    rejectBtn.textContent = "Reject";
+
+    actions.appendChild(approveBtn);
+    actions.appendChild(rejectBtn);
+    item.appendChild(choreName);
+    item.appendChild(meta);
+    item.appendChild(actions);
+    approvalsList.appendChild(item);
+  });
+}
+
+function initParentApprovalWorkflow() {
+  if (!approvalsList) {
+    return;
+  }
+
+  renderParentApprovalQueue();
+
+  if (parentApprovalControlsBound) {
+    return;
+  }
+
+  approvalsList.addEventListener("click", (event) => {
+    const approveBtn = event.target.closest("button.approval-approve");
+    if (approveBtn) {
+      const profileId = approveBtn.dataset.profileId || "";
+      const mappingId = approveBtn.dataset.id || "";
+      if (!profileId || !mappingId) {
+        return;
+      }
+      setChoreCompleted(profileId, mappingId, true);
+      clearChoreApprovalForProfile(profileId, mappingId);
+      renderChoreMappings();
+      renderParentApprovalQueue();
+      renderParentDashboard();
+      return;
+    }
+
+    const rejectBtn = event.target.closest("button.approval-reject");
+    if (!rejectBtn) {
+      return;
+    }
+
+    const profileId = rejectBtn.dataset.profileId || "";
+    const mappingId = rejectBtn.dataset.id || "";
+    if (!profileId || !mappingId) {
+      return;
+    }
+
+    setChoreCompleted(profileId, mappingId, false);
+    clearChoreApprovalForProfile(profileId, mappingId);
+    renderChoreMappings();
+    renderParentApprovalQueue();
+    renderParentDashboard();
+  });
+
+  parentApprovalControlsBound = true;
 }
 
 function loadReflections() {
@@ -1849,6 +2954,7 @@ function renderParentDashboard() {
 
   const overallAccuracy = totalAttempts ? Math.round((totalCorrect / totalAttempts) * 100) : 0;
   const memoryAccuracy = totalMemoryAttempts ? Math.round((totalMemoryCorrect / totalMemoryAttempts) * 100) : 0;
+  const pendingApprovalsCount = getPendingApprovals().length;
 
   parentChildrenCount.textContent = String(totalChildren);
   parentChallengesCount.textContent = String(totalAttempts);
@@ -1866,7 +2972,16 @@ function renderParentDashboard() {
   const activeChoreProgress = getCompletedAssignedChoreCount(activeProfile.id);
   const agesText = activeProfile.ages && activeProfile.ages.length ? activeProfile.ages.join(", ") : "none";
 
-  parentActiveSummary.textContent = `${getProfileIconGlyph(activeProfile.icon)} ${activeProfile.name} (ages ${agesText}) • ${activeProgress.correct}/${activeProgress.attempts} correct • ${activeChoreProgress.completed}/${activeChoreProgress.total} chores this week`;
+  parentActiveSummary.textContent = `${getProfileIconGlyph(activeProfile.icon)} ${activeProfile.name} (ages ${agesText}) • ${activeProgress.correct}/${activeProgress.attempts} correct • ${activeChoreProgress.completed}/${activeChoreProgress.total} chores this week • ${pendingApprovalsCount} pending approvals`;
+}
+
+function renderProfileDrivenPanels() {
+  renderChoreMappings();
+  renderWeeklyPlan();
+  renderValueToChoreSuggestions();
+  renderGoalMilestones();
+  renderParentApprovalQueue();
+  renderParentDashboard();
 }
 
 if (reflectionForm && reflectionInput) {
@@ -1897,6 +3012,11 @@ function startDashboardApp() {
   initParentProfileControls();
   initProfileControls();
   initDashboardFilterControls();
+  initChoreMapping();
+  initWeeklyPlanControls();
+  initValueToChoreSuggestions();
+  initGoalMilestones();
+  initParentApprovalWorkflow();
   if (dashboardFilterProfileId !== "all") {
     setActiveProfile(dashboardFilterProfileId, { refreshScenario: false });
   } else {
@@ -1905,25 +3025,23 @@ function startDashboardApp() {
   initMemoryVerseMode();
   setProgress(getActiveProgress());
   loadScenario();
-  initChoreMapping();
-  renderChoreMappings();
+  renderProfileDrivenPanels();
   loadReflections();
-  renderParentDashboard();
   markPageReady();
 }
 
 function refreshDashboardFromSharedState() {
   initProfilesAndData();
   choreMappings = loadChoreMappings();
+  pruneStaleChoreStateReferences();
   initDashboardFilterControls();
   if (dashboardFilterProfileId !== "all") {
     setActiveProfile(dashboardFilterProfileId, { refreshScenario: false });
   } else {
     setActiveProfile(activeProfileId, { refreshScenario: false });
   }
-  renderChoreMappings();
+  renderProfileDrivenPanels();
   loadReflections();
-  renderParentDashboard();
 }
 
 window.addEventListener("fcv:remote-update", () => {
