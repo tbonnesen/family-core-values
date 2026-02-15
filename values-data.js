@@ -16,6 +16,15 @@ window.CORE_VALUES = [
       "Hiding mistakes to avoid consequences.",
       "Saying one thing but doing another."
     ],
+    ageExamples: [
+      { age: 1, example: "Tries not to hide a spill and looks to a parent for help." },
+      { age: 2, example: "Gives back a toy they grabbed when reminded." },
+      { age: 3, example: "Says 'I did it' instead of blaming someone else." },
+      { age: 4, example: "Follows a simple house rule even when alone for a moment." },
+      { age: 5, example: "Tells the truth about breaking something small." },
+      { age: 6, example: "Admits a mistake at school and works to fix it." },
+      { age: 7, example: "Keeps a promise to finish a task before play." }
+    ],
     verseRef: "Psalm 25:21 (KJV)",
     verseText:
       "Let integrity and uprightness preserve me; for I wait on thee.",
@@ -40,6 +49,15 @@ window.CORE_VALUES = [
     notLike: [
       "Giving up after one setback.",
       "Avoiding hard things just to stay comfortable."
+    ],
+    ageExamples: [
+      { age: 1, example: "Keeps trying to stack blocks after they fall." },
+      { age: 2, example: "Tries to zip a jacket again with encouragement." },
+      { age: 3, example: "Works on a puzzle piece instead of quitting quickly." },
+      { age: 4, example: "Practices writing letters even after mistakes." },
+      { age: 5, example: "Keeps sounding out a hard word while reading." },
+      { age: 6, example: "Stays with a hard problem and asks for help when needed." },
+      { age: 7, example: "Works on a project in steps over several days." }
     ],
     verseRef: "Galatians 6:9 (KJV)",
     verseText:
@@ -66,6 +84,15 @@ window.CORE_VALUES = [
       "Assuming we are always right.",
       "Mocking others when they disagree."
     ],
+    ageExamples: [
+      { age: 1, example: "Accepts gentle correction when shown a better way." },
+      { age: 2, example: "Listens when a parent shows how to do a task differently." },
+      { age: 3, example: "Says 'show me' when they do not know how." },
+      { age: 4, example: "Can say 'I was wrong' and try again." },
+      { age: 5, example: "Asks questions to learn instead of arguing first." },
+      { age: 6, example: "Changes an answer after hearing new facts." },
+      { age: 7, example: "Explains, 'I changed my mind because I learned something new.'" }
+    ],
     verseRef: "Proverbs 11:2 (KJV)",
     verseText:
       "When pride cometh, then cometh shame: but with the lowly is wisdom.",
@@ -90,6 +117,15 @@ window.CORE_VALUES = [
     notLike: [
       "Wastefulness and carelessness.",
       "Treating shared resources as if they do not matter."
+    ],
+    ageExamples: [
+      { age: 1, example: "Helps put toys back into a bin with support." },
+      { age: 2, example: "Turns book pages gently and helps clean up spills." },
+      { age: 3, example: "Throws trash away when prompted." },
+      { age: 4, example: "Helps water a plant without wasting water." },
+      { age: 5, example: "Turns off lights when leaving a room." },
+      { age: 6, example: "Keeps school supplies organized and cared for." },
+      { age: 7, example: "Uses allowance thoughtfully and saves for a goal." }
     ],
     verseRef: "1 Peter 4:10 (KJV)",
     verseText:
@@ -116,6 +152,15 @@ window.CORE_VALUES = [
       "Talking over people or mocking them.",
       "Using rude tones, eye-rolling, or dismissive behavior."
     ],
+    ageExamples: [
+      { age: 1, example: "Uses gentle hands with people and pets." },
+      { age: 2, example: "Waits a short turn with help." },
+      { age: 3, example: "Uses 'please' and 'thank you' with reminders." },
+      { age: 4, example: "Looks at the speaker and listens without interrupting." },
+      { age: 5, example: "Uses kind words when upset instead of yelling." },
+      { age: 6, example: "Knocks before entering a room and respects boundaries." },
+      { age: 7, example: "Disagrees politely without name-calling." }
+    ],
     verseRef: "Philippians 2:3 (KJV)",
     verseText:
       "Let nothing be done through strife or vainglory; but in lowliness of mind let each esteem other better than themselves.",
@@ -140,6 +185,15 @@ window.CORE_VALUES = [
     notLike: [
       "Taking help for granted.",
       "Complaining constantly while ignoring good things."
+    ],
+    ageExamples: [
+      { age: 1, example: "Smiles or claps when someone helps them." },
+      { age: 2, example: "Says 'thank you' after receiving help or food." },
+      { age: 3, example: "Names one good thing from the day at bedtime." },
+      { age: 4, example: "Thanks a sibling for sharing a toy." },
+      { age: 5, example: "Draws or writes a simple thank-you note." },
+      { age: 6, example: "Prays thanks for specific blessings." },
+      { age: 7, example: "Notices and thanks someone for unseen work at home." }
     ],
     verseRef: "1 Thessalonians 5:18 (KJV)",
     verseText:
@@ -166,6 +220,15 @@ window.CORE_VALUES = [
       "Letting fear completely control decisions.",
       "Treating spiritual life as an afterthought."
     ],
+    ageExamples: [
+      { age: 1, example: "Folds hands for a short family prayer." },
+      { age: 2, example: "Joins a simple bedtime prayer with help." },
+      { age: 3, example: "Repeats a short Bible verse phrase." },
+      { age: 4, example: "Asks God for help when afraid." },
+      { age: 5, example: "Chooses honesty because they want to obey God." },
+      { age: 6, example: "Participates in family devotional time." },
+      { age: 7, example: "Prays through disappointment and chooses trust in God." }
+    ],
     verseRef: "Hebrews 11:1 (KJV)",
     verseText:
       "Now faith is the substance of things hoped for, the evidence of things not seen.",
@@ -190,6 +253,15 @@ window.CORE_VALUES = [
     notLike: [
       "Only thinking about ourselves.",
       "Ignoring responsibilities that affect everyone at home."
+    ],
+    ageExamples: [
+      { age: 1, example: "Brings a diaper or wipe to help with a sibling." },
+      { age: 2, example: "Helps put napkins on the table." },
+      { age: 3, example: "Gives a hug after conflict with support." },
+      { age: 4, example: "Helps with cleanup before playtime." },
+      { age: 5, example: "Includes a younger sibling in a game." },
+      { age: 6, example: "Finishes a family chore before screen time." },
+      { age: 7, example: "Apologizes sincerely and helps repair the relationship." }
     ],
     verseRef: "Joshua 24:15 (KJV)",
     verseText:

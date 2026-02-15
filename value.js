@@ -6,6 +6,7 @@ const meaningEl = document.getElementById("value-meaning");
 const whyEl = document.getElementById("value-why");
 const looksLikeEl = document.getElementById("value-looks-like");
 const notLikeEl = document.getElementById("value-not-like");
+const byAgeEl = document.getElementById("value-by-age");
 const challengeEl = document.getElementById("value-challenge");
 const verseRefEl = document.getElementById("value-verse-ref");
 const verseTextEl = document.getElementById("value-verse-text");
@@ -26,6 +27,29 @@ function renderList(target, items) {
     li.textContent = item;
     target.appendChild(li);
   });
+}
+
+function renderAgeExamples(target, items) {
+  target.innerHTML = "";
+  items
+    .slice()
+    .sort((a, b) => a.age - b.age)
+    .forEach((entry) => {
+      const row = document.createElement("div");
+      row.className = "age-example-item";
+
+      const age = document.createElement("span");
+      age.className = "age-pill";
+      age.textContent = `Age ${entry.age}`;
+
+      const text = document.createElement("p");
+      text.className = "age-example-text";
+      text.textContent = entry.example;
+
+      row.appendChild(age);
+      row.appendChild(text);
+      target.appendChild(row);
+    });
 }
 
 function getValueFromQuery() {
@@ -91,6 +115,7 @@ function renderValuePage() {
 
   renderList(looksLikeEl, value.looksLike);
   renderList(notLikeEl, value.notLike);
+  renderAgeExamples(byAgeEl, value.ageExamples || []);
   renderOtherValues(slug);
 
   document.title = `${value.name} | Family Core Values`;

@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700&family=Nunito:wght@400;600;700;800&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Orbitron:wght@500;700&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
@@ -42,6 +42,27 @@
         </div>
       </section>
 
+      <section class="panel panel--weekly" aria-labelledby="weekly-title">
+        <h2 id="weekly-title">Value Of The Week</h2>
+        <p id="weekly-label" class="panel-meta"></p>
+        <p id="weekly-value" class="spotlight-value"></p>
+        <p id="weekly-message" class="spotlight-message"></p>
+        <a id="weekly-link" class="panel-link" href="value.html">Open Value Page</a>
+      </section>
+
+      <section class="panel panel--memory" aria-labelledby="memory-title">
+        <h2 id="memory-title">Memory Verse Mode</h2>
+        <p id="memory-meta" class="panel-meta"></p>
+        <p id="memory-value" class="memory-value"></p>
+        <p id="memory-ref" class="memory-ref"></p>
+        <p id="memory-text" class="memory-text memory-text--hidden"></p>
+        <div class="memory-actions">
+          <button id="memory-toggle" class="btn btn--small" type="button">Reveal Verse</button>
+          <button id="memory-prompt" class="btn btn--small btn--alt" type="button">Practice Prompt</button>
+        </div>
+        <p id="memory-practice" class="memory-practice"></p>
+      </section>
+
       <section class="panel panel--values" aria-labelledby="values-title">
         <h2 id="values-title">Our Values</h2>
         <p class="hint">Tap a card to open a full page for that core value.</p>
@@ -54,6 +75,23 @@
         <div id="choices" class="choices"></div>
         <p id="scenario-result" class="scenario-result" aria-live="polite"></p>
         <button id="next-scenario" class="btn">New Scenario</button>
+      </section>
+
+      <section class="panel panel--chores" aria-labelledby="chores-title">
+        <h2 id="chores-title">Chore-To-Value Mapping</h2>
+        <p class="hint">Connect daily chores to a core value.</p>
+        <form id="chore-form" class="chore-form">
+          <input
+            id="chore-input"
+            type="text"
+            maxlength="80"
+            placeholder="Example: Clear the dinner table"
+            required
+          />
+          <select id="chore-value-select" required></select>
+          <button class="btn btn--alt" type="submit">Add Mapping</button>
+        </form>
+        <ul id="chore-list" class="chore-list"></ul>
       </section>
 
       <section class="panel panel--reflection" aria-labelledby="reflection-title">
