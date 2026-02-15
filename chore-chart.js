@@ -35,6 +35,11 @@ const PROFILE_ICON_GLYPHS = {
 const weekLabel = document.getElementById("chore-chart-week");
 const summaryLabel = document.getElementById("chore-chart-summary");
 const chartGrid = document.getElementById("chore-chart-grid");
+const choreForm = document.getElementById("chore-chart-form");
+const choreInput = document.getElementById("chore-chart-input");
+const choreValueSelect = document.getElementById("chore-chart-value-select");
+const choreProfileSelect = document.getElementById("chore-chart-profile-select");
+const feedbackLabel = document.getElementById("chore-chart-feedback");
 
 const loadJSON =
   typeof fcv.loadJSON === "function"
@@ -47,6 +52,12 @@ const loadJSON =
           return fallback;
         }
       };
+const saveJSON =
+  typeof fcv.saveJSON === "function"
+    ? fcv.saveJSON
+    : (key, data) => {
+        localStorage.setItem(key, JSON.stringify(data));
+      };
 
 const slugify =
   typeof fcv.slugify === "function"
@@ -56,7 +67,6 @@ const slugify =
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/(^-|-$)/g, "");
-
 const getYearWeekIndex =
   typeof fcv.getYearWeekIndex === "function"
     ? fcv.getYearWeekIndex
@@ -123,6 +133,74 @@ const normalizeChoreMappings =
           .filter(Boolean);
       };
 
+let profiles = [];
+let choreMappings = [];
+let profileChoreCompletionMap = {};
+let controlsBound = false;
+const VALUE_TRANSITION_KEY = "fcv_transition_value_slug";
+let valueLinkTransitionBound = false;
+
+function createId(prefix) {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function setPanelStaggerIndexes(selector) {
+  document.querySelectorAll(selector).forEach((element, index) => {
+    element.style.setProperty("--panel-index", String(index));
+  });
+}
+
+function markPageReady() {
+  document.body.classList.remove("is-loading");
+  window.requestAnimationFrame(() => {
+    document.body.classList.add("is-ready");
+  });
+}
+
+function setValueTransitionIntent(slug) {
+  if (!slug) {
+    return;
+  }
+  try {
+    sessionStorage.setItem(VALUE_TRANSITION_KEY, slug);
+  } catch {
+    // Ignore session storage failures.
+  }
+}
+
+function initValueNavigationIntentCapture() {
+  if (valueLinkTransitionBound) {
+    return;
+  }
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      const link = event.target.closest("a[href*='value.html']");
+      if (!link) {
+        return;
+      }
+      const href = link.getAttribute("href");
+      if (!href) {
+        return;
+      }
+      let url;
+      try {
+        url = new URL(href, window.location.href);
+      } catch {
+        return;
+      }
+      const slug = url.searchParams.get("value");
+      if (slug) {
+        setValueTransitionIntent(slug);
+      }
+    },
+    { capture: true }
+  );
+
+  valueLinkTransitionBound = true;
+}
+
 function getProfileWeekCompletion(completionMap, profileId, weekKey) {
   const byProfile = completionMap && completionMap[profileId] ? completionMap[profileId] : {};
   return byProfile[weekKey] || {};
@@ -132,22 +210,123 @@ function getProfileIconGlyph(iconId) {
   return PROFILE_ICON_GLYPHS[iconId] || PROFILE_ICON_GLYPHS.star;
 }
 
+function setFeedback(message) {
+  if (!feedbackLabel) {
+    return;
+  }
+  feedbackLabel.classList.remove("is-visible");
+  feedbackLabel.textContent = message;
+  window.requestAnimationFrame(() => {
+    feedbackLabel.classList.add("is-visible");
+  });
+}
+
+function loadChartState() {
+  profiles = loadJSON(STORAGE.PROFILES, []);
+  profileChoreCompletionMap = loadJSON(STORAGE.PROFILE_CHORE_COMPLETION, {});
+  choreMappings = normalizeChoreMappings(loadJSON(STORAGE.CHORE_MAP, []), profiles, profiles[0]?.id || "", []);
+}
+
+function saveChoreMappings() {
+  saveJSON(STORAGE.CHORE_MAP, choreMappings);
+}
+
+function saveProfileChoreCompletionMap() {
+  saveJSON(STORAGE.PROFILE_CHORE_COMPLETION, profileChoreCompletionMap);
+}
+
+function getProfileById(profileId) {
+  return profiles.find((profile) => profile.id === profileId) || null;
+}
+
+function populateValueSelect(selectEl, selectedValue = "") {
+  if (!selectEl) {
+    return;
+  }
+
+  selectEl.innerHTML = "";
+  values.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value.name;
+    option.textContent = value.name;
+    selectEl.appendChild(option);
+  });
+
+  const hasRequested = selectedValue && values.some((value) => value.name === selectedValue);
+  if (hasRequested) {
+    selectEl.value = selectedValue;
+  }
+}
+
+function populateProfileSelect(selectEl, selectedProfileId = "") {
+  if (!selectEl) {
+    return;
+  }
+
+  selectEl.innerHTML = "";
+  profiles.forEach((profile, profileIndex) => {
+    const option = document.createElement("option");
+    option.value = profile.id;
+    option.textContent = `${getProfileIconGlyph(profile.icon)} ${profile.name}`;
+    selectEl.appendChild(option);
+  });
+
+  const hasRequested = selectedProfileId && profiles.some((profile) => profile.id === selectedProfileId);
+  if (hasRequested) {
+    selectEl.value = selectedProfileId;
+    return;
+  }
+  if (profiles[0]) {
+    selectEl.value = profiles[0].id;
+  }
+}
+
+function clearChoreCompletion(mappingId) {
+  Object.keys(profileChoreCompletionMap).forEach((profileId) => {
+    const byWeek = profileChoreCompletionMap[profileId];
+    if (!byWeek || typeof byWeek !== "object") {
+      return;
+    }
+    Object.keys(byWeek).forEach((weekKey) => {
+      const completion = byWeek[weekKey];
+      if (completion && completion[mappingId]) {
+        delete completion[mappingId];
+      }
+    });
+  });
+}
+
 function renderChoreChart() {
   if (!chartGrid || !weekLabel || !summaryLabel) {
     return;
   }
 
-  const profiles = loadJSON(STORAGE.PROFILES, []);
-  const completionMap = loadJSON(STORAGE.PROFILE_CHORE_COMPLETION, {});
-  const choreMappings = normalizeChoreMappings(loadJSON(STORAGE.CHORE_MAP, []), profiles, profiles[0]?.id || "", []);
+  loadChartState();
+
   const weekKey = getWeekKey();
   const weekNumber = getYearWeekIndex() + 1;
-
   weekLabel.textContent = `Week ${weekNumber} of ${new Date().getFullYear()} • ${weekKey}`;
+
+  const selectedValue = choreValueSelect ? choreValueSelect.value : "";
+  const selectedProfile = choreProfileSelect ? choreProfileSelect.value : "";
+  populateValueSelect(choreValueSelect, selectedValue);
+  populateProfileSelect(choreProfileSelect, selectedProfile);
+
+  if (choreForm && choreInput && choreValueSelect && choreProfileSelect) {
+    const formEnabled = profiles.length > 0 && values.length > 0;
+    choreInput.disabled = !formEnabled;
+    choreValueSelect.disabled = !formEnabled;
+    choreProfileSelect.disabled = !formEnabled;
+    const submitButton = choreForm.querySelector("button[type='submit']");
+    if (submitButton) {
+      submitButton.disabled = !formEnabled;
+    }
+  }
 
   if (!Array.isArray(profiles) || !profiles.length) {
     summaryLabel.textContent = "No child profiles found. Add a profile on the dashboard first.";
     chartGrid.innerHTML = "";
+    setFeedback("Add a child profile on the dashboard before assigning chores.");
     return;
   }
 
@@ -157,7 +336,7 @@ function renderChoreChart() {
 
   profiles.forEach((profile) => {
     const assigned = choreMappings.filter((mapping) => mapping.assignedProfileId === profile.id);
-    const completion = getProfileWeekCompletion(completionMap, profile.id, weekKey);
+    const completion = getProfileWeekCompletion(profileChoreCompletionMap, profile.id, weekKey);
     const completedCount = assigned.filter((mapping) => Boolean(completion[mapping.id])).length;
 
     totalAssigned += assigned.length;
@@ -165,6 +344,7 @@ function renderChoreChart() {
 
     const card = document.createElement("article");
     card.className = "chore-profile-card";
+    card.style.setProperty("--card-index", String(profileIndex));
 
     const header = document.createElement("div");
     header.className = "chore-profile-header";
@@ -196,9 +376,15 @@ function renderChoreChart() {
       const row = document.createElement("li");
       row.className = `chore-chart-item${completion[mapping.id] ? " is-complete" : ""}`;
 
+      const main = document.createElement("div");
+      main.className = "chore-chart-main";
+
       const name = document.createElement("span");
       name.className = "chore-chart-name";
       name.textContent = mapping.chore;
+
+      const meta = document.createElement("div");
+      meta.className = "chore-chart-meta";
 
       const value = getValueByIdentifier(mapping.value);
       const toneClass = getValueToneClass(mapping.value);
@@ -220,9 +406,31 @@ function renderChoreChart() {
       status.className = "chore-chart-status";
       status.textContent = completion[mapping.id] ? "Done" : "Open";
 
-      row.appendChild(name);
-      row.appendChild(valueTag);
-      row.appendChild(status);
+      meta.appendChild(valueTag);
+      meta.appendChild(status);
+      main.appendChild(name);
+      main.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "chore-chart-actions";
+
+      const moveSelect = document.createElement("select");
+      moveSelect.className = "chore-chart-move";
+      moveSelect.dataset.id = mapping.id;
+      moveSelect.setAttribute("aria-label", `Move ${mapping.chore} to a different child`);
+      populateProfileSelect(moveSelect, mapping.assignedProfileId);
+
+      const removeBtn = document.createElement("button");
+      removeBtn.type = "button";
+      removeBtn.className = "chore-chart-remove";
+      removeBtn.dataset.id = mapping.id;
+      removeBtn.textContent = "Remove";
+      removeBtn.setAttribute("aria-label", `Remove ${mapping.chore}`);
+
+      actions.appendChild(moveSelect);
+      actions.appendChild(removeBtn);
+      row.appendChild(main);
+      row.appendChild(actions);
       list.appendChild(row);
     });
 
@@ -233,10 +441,120 @@ function renderChoreChart() {
   summaryLabel.textContent = `${totalCompleted}/${totalAssigned} assigned chores complete this week`;
 }
 
-if (fcv.ready && typeof fcv.ready.then === "function") {
-  fcv.ready.finally(renderChoreChart);
-} else {
+function handleChoreFormSubmit(event) {
+  event.preventDefault();
+
+  if (!choreInput || !choreValueSelect || !choreProfileSelect) {
+    return;
+  }
+
+  const chore = choreInput.value.trim();
+  const value = choreValueSelect.value;
+  const assignedProfileId = choreProfileSelect.value;
+  if (!chore || !value || !assignedProfileId) {
+    return;
+  }
+  if (!profiles.some((profile) => profile.id === assignedProfileId)) {
+    return;
+  }
+
+  choreMappings.unshift({
+    id: createId("chore"),
+    chore,
+    value,
+    assignedProfileId
+  });
+
+  saveChoreMappings();
+  setFeedback(`Added "${chore}".`);
+  choreInput.value = "";
   renderChoreChart();
+}
+
+function handleChartGridClick(event) {
+  const removeBtn = event.target.closest("button.chore-chart-remove");
+  if (!removeBtn) {
+    return;
+  }
+
+  const { id } = removeBtn.dataset;
+  const mapping = choreMappings.find((item) => item.id === id);
+  if (!mapping) {
+    return;
+  }
+
+  choreMappings = choreMappings.filter((item) => item.id !== id);
+  clearChoreCompletion(id);
+
+  saveChoreMappings();
+  saveProfileChoreCompletionMap();
+  setFeedback(`Removed "${mapping.chore}".`);
+  renderChoreChart();
+}
+
+function handleChartGridChange(event) {
+  const moveSelect = event.target.closest("select.chore-chart-move");
+  if (!moveSelect) {
+    return;
+  }
+
+  const { id } = moveSelect.dataset;
+  const nextProfileId = moveSelect.value;
+  const mapping = choreMappings.find((item) => item.id === id);
+
+  if (!mapping || !nextProfileId || mapping.assignedProfileId === nextProfileId) {
+    return;
+  }
+  if (!profiles.some((profile) => profile.id === nextProfileId)) {
+    renderChoreChart();
+    return;
+  }
+
+  const previousProfile = getProfileById(mapping.assignedProfileId);
+  const nextProfile = getProfileById(nextProfileId);
+
+  mapping.assignedProfileId = nextProfileId;
+  clearChoreCompletion(id);
+  saveChoreMappings();
+  saveProfileChoreCompletionMap();
+
+  if (previousProfile && nextProfile) {
+    setFeedback(`Moved "${mapping.chore}" from ${previousProfile.name} to ${nextProfile.name}.`);
+  } else {
+    setFeedback(`Moved "${mapping.chore}" to a new child profile.`);
+  }
+
+  renderChoreChart();
+}
+
+function bindControls() {
+  if (controlsBound) {
+    return;
+  }
+
+  if (choreForm) {
+    choreForm.addEventListener("submit", handleChoreFormSubmit);
+  }
+  if (chartGrid) {
+    chartGrid.addEventListener("click", handleChartGridClick);
+    chartGrid.addEventListener("change", handleChartGridChange);
+  }
+
+  controlsBound = true;
+}
+
+function startChoreChartApp() {
+  initValueNavigationIntentCapture();
+  setPanelStaggerIndexes(".chore-chart-layout > .panel");
+  bindControls();
+  renderChoreChart();
+  markPageReady();
+}
+
+if (fcv.ready && typeof fcv.ready.then === "function") {
+  fcv.ready.finally(startChoreChartApp);
+} else {
+  startChoreChartApp();
 }
 
 window.addEventListener("fcv:remote-update", renderChoreChart);

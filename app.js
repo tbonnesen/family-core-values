@@ -268,6 +268,8 @@ let choreMappings = [];
 let currentScenario = null;
 let memoryVisible = false;
 let currentMemoryGame = null;
+const VALUE_TRANSITION_KEY = "fcv_transition_value_slug";
+let valueLinkTransitionBound = false;
 
 function slugify(text) {
   if (typeof fcv.slugify === "function") {
@@ -281,6 +283,63 @@ function slugify(text) {
 
 function createId(prefix) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function setPanelStaggerIndexes(selector) {
+  document.querySelectorAll(selector).forEach((element, index) => {
+    element.style.setProperty("--panel-index", String(index));
+  });
+}
+
+function markPageReady() {
+  document.body.classList.remove("is-loading");
+  window.requestAnimationFrame(() => {
+    document.body.classList.add("is-ready");
+  });
+}
+
+function setValueTransitionIntent(slug) {
+  if (!slug) {
+    return;
+  }
+  try {
+    sessionStorage.setItem(VALUE_TRANSITION_KEY, slug);
+  } catch {
+    // Ignore session storage failures in private browsing contexts.
+  }
+}
+
+function initValueNavigationIntentCapture() {
+  if (valueLinkTransitionBound) {
+    return;
+  }
+
+  document.addEventListener(
+    "click",
+    (event) => {
+      const link = event.target.closest("a[href*='value.html']");
+      if (!link) {
+        return;
+      }
+      const href = link.getAttribute("href");
+      if (!href) {
+        return;
+      }
+      let url;
+      try {
+        url = new URL(href, window.location.href);
+      } catch {
+        return;
+      }
+      const slug = url.searchParams.get("value");
+      if (slug) {
+        setValueTransitionIntent(slug);
+      }
+    },
+    { capture: true }
+  );
+
+  valueLinkTransitionBound = true;
 }
 
 function loadJSON(key, fallback) {
@@ -1117,6 +1176,8 @@ function buildValueCards() {
     return;
   }
 
+  valueGrid.innerHTML = "";
+
   if (!values.length) {
     valueGrid.innerHTML = "<p>No core values are configured yet.</p>";
     return;
@@ -1141,9 +1202,14 @@ function buildValueCards() {
     const slug = value.slug || slugify(value.name);
 
     card.classList.add(tone);
+    card.style.setProperty("--card-index", String(index));
+    card.dataset.valueSlug = slug;
     link.href = `value.html?value=${encodeURIComponent(slug)}`;
+    link.dataset.valueSlug = slug;
     badge.textContent = initials;
+    badge.style.viewTransitionName = `value-badge-${slug}`;
     name.textContent = value.name;
+    name.style.viewTransitionName = `value-title-${slug}`;
     summary.textContent = value.meaning;
 
     valueGrid.appendChild(fragment);
@@ -1182,8 +1248,10 @@ function setValueOfWeek() {
 
   weeklyLabel.textContent = `Week ${weekIndex + 1} of ${new Date().getFullYear()}`;
   weeklyValue.textContent = choice.name;
+  weeklyValue.style.viewTransitionName = `value-title-${slug}`;
   weeklyMessage.textContent = choice.challenge;
   weeklyLink.href = `value.html?value=${encodeURIComponent(slug)}`;
+  weeklyLink.dataset.valueSlug = slug;
   weeklyLink.textContent = `Explore ${choice.name}`;
 }
 
@@ -1820,6 +1888,8 @@ if (nextScenarioBtn) {
 }
 
 function startDashboardApp() {
+  initValueNavigationIntentCapture();
+  setPanelStaggerIndexes(".layout > .panel");
   buildValueCards();
   setSpotlight();
   setValueOfWeek();
@@ -1839,6 +1909,7 @@ function startDashboardApp() {
   renderChoreMappings();
   loadReflections();
   renderParentDashboard();
+  markPageReady();
 }
 
 function refreshDashboardFromSharedState() {

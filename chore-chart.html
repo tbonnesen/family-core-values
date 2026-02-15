@@ -12,7 +12,7 @@
     />
     <link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="chore-chart-page">
+  <body class="chore-chart-page is-loading">
     <header class="hero">
       <div class="hero__content">
         <p class="eyebrow">Family Core Values</p>
@@ -30,6 +30,18 @@
         <h2 id="chore-chart-overview-title">This Week</h2>
         <p id="chore-chart-week" class="panel-meta"></p>
         <p id="chore-chart-summary" class="spotlight-message"></p>
+      </section>
+
+      <section class="panel chore-chart-manage" aria-labelledby="chore-chart-manage-title">
+        <h2 id="chore-chart-manage-title">Manage Chores</h2>
+        <p class="hint">Add chores, remove chores, or move chores between kids.</p>
+        <form id="chore-chart-form" class="chore-form chore-chart-form">
+          <input id="chore-chart-input" type="text" placeholder="Add a chore" required />
+          <select id="chore-chart-value-select" required></select>
+          <select id="chore-chart-profile-select" required></select>
+          <button type="submit" class="btn">Add Chore</button>
+        </form>
+        <p id="chore-chart-feedback" class="panel-meta chore-chart-feedback" aria-live="polite"></p>
       </section>
 
       <section class="panel chore-chart-grid-panel" aria-labelledby="chore-chart-grid-title">
