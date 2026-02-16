@@ -625,10 +625,49 @@ function getGridColumnCount() {
     return 1;
   }
 
-  return template
-    .split(" ")
-    .map((token) => token.trim())
-    .filter(Boolean).length;
+  const tokens = [];
+  let current = "";
+  let depth = 0;
+
+  for (let i = 0; i < template.length; i += 1) {
+    const char = template[i];
+    if (char === "(") {
+      depth += 1;
+      current += char;
+      continue;
+    }
+    if (char === ")") {
+      depth = Math.max(0, depth - 1);
+      current += char;
+      continue;
+    }
+    if (/\s/.test(char) && depth === 0) {
+      if (current.trim()) {
+        tokens.push(current.trim());
+      }
+      current = "";
+      continue;
+    }
+    current += char;
+  }
+
+  if (current.trim()) {
+    tokens.push(current.trim());
+  }
+
+  if (!tokens.length) {
+    return 1;
+  }
+
+  const total = tokens.reduce((count, token) => {
+    const repeatMatch = token.match(/^repeat\(\s*(\d+)\s*,/i);
+    if (repeatMatch) {
+      return count + Math.max(1, Number(repeatMatch[1]) || 1);
+    }
+    return count + 1;
+  }, 0);
+
+  return Math.max(1, total);
 }
 
 function clampPanelSpan(span, maxCols = 12) {
@@ -1046,12 +1085,7 @@ function scheduleDashboardLayoutReflow() {
     if (!sourceState) {
       return;
     }
-    const applied = applyDashboardLayoutState(sourceState);
-    if (layoutHasUnsavedChanges) {
-      draftDashboardLayoutState = cloneLayoutState(applied);
-    } else {
-      savedDashboardLayoutState = cloneLayoutState(applied);
-    }
+    applyDashboardLayoutState(sourceState);
   });
 }
 
@@ -1068,8 +1102,7 @@ function applySavedDashboardLayoutFromStorage(options = {}) {
     return;
   }
 
-  const applied = applyDashboardLayoutState(savedDashboardLayoutState);
-  savedDashboardLayoutState = cloneLayoutState(applied || savedDashboardLayoutState);
+  applyDashboardLayoutState(savedDashboardLayoutState);
   draftDashboardLayoutState = cloneLayoutState(savedDashboardLayoutState);
   layoutHasUnsavedChanges = false;
   updateLayoutControlState();
@@ -1865,9 +1898,11 @@ function initProfileControls() {
     saveJSON(STORAGE.PROFILES, profiles);
 
     renderProfileSelect();
+    renderDashboardFilterOptions();
     renderProfileList();
     renderGoalMilestones();
     renderParentDashboard();
+    applyDashboardAgeFilter();
   });
 
   profileRemoveBtn.addEventListener("click", () => {
@@ -1902,12 +1937,14 @@ function initProfileControls() {
     saveJSON(STORAGE.PROFILES, profiles);
 
     renderProfileSelect();
+    renderDashboardFilterOptions();
     renderProfileIconSelect();
     renderProfileList();
     populateChoreProfileSelect();
     populateValueSuggestionProfileSelect();
     renderParentApprovalQueue();
     renderParentDashboard();
+    applyDashboardAgeFilter();
   });
 }
 

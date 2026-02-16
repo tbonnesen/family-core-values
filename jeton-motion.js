@@ -1,5 +1,8 @@
 (function initJetonMotion() {
   const REDUCED_MOTION = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const observedRevealNodes = new WeakSet();
+  let revealObserver = null;
+  let refreshRaf = 0;
 
   function queryMotionTargets() {
     return Array.from(
@@ -16,25 +19,45 @@
     });
   }
 
-  function setupRevealObserver() {
-    if (REDUCED_MOTION || typeof IntersectionObserver !== "function") {
-      queryMotionTargets().forEach((node) => node.classList.add("is-inview"));
-      return;
+  function getRevealObserver() {
+    if (revealObserver || REDUCED_MOTION || typeof IntersectionObserver !== "function") {
+      return revealObserver;
     }
 
-    const observer = new IntersectionObserver(
+    revealObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             entry.target.classList.add("is-inview");
-            observer.unobserve(entry.target);
+            revealObserver.unobserve(entry.target);
           }
         });
       },
       { rootMargin: "0px 0px -10% 0px", threshold: 0.12 }
     );
 
-    queryMotionTargets().forEach((node) => observer.observe(node));
+    return revealObserver;
+  }
+
+  function setupRevealObserver() {
+    const nodes = queryMotionTargets();
+    if (REDUCED_MOTION || typeof IntersectionObserver !== "function") {
+      nodes.forEach((node) => node.classList.add("is-inview"));
+      return;
+    }
+
+    const observer = getRevealObserver();
+    if (!observer) {
+      return;
+    }
+
+    nodes.forEach((node) => {
+      if (observedRevealNodes.has(node)) {
+        return;
+      }
+      observedRevealNodes.add(node);
+      observer.observe(node);
+    });
   }
 
   function setupHeroParallax() {
@@ -117,6 +140,16 @@
     markFloatingTargets();
   }
 
+  function scheduleRefreshMotionBindings() {
+    if (refreshRaf) {
+      return;
+    }
+    refreshRaf = window.requestAnimationFrame(() => {
+      refreshRaf = 0;
+      refreshMotionBindings();
+    });
+  }
+
   function init() {
     document.body.classList.add("jeton-motion-ready");
     refreshMotionBindings();
@@ -124,7 +157,7 @@
 
     if (typeof MutationObserver === "function") {
       const observer = new MutationObserver(() => {
-        refreshMotionBindings();
+        scheduleRefreshMotionBindings();
       });
       observer.observe(document.body, { childList: true, subtree: true });
     }

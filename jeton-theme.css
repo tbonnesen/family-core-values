@@ -186,10 +186,6 @@ body.view-mode-mobile .value-card__link.value-card__link--compact {
   grid-template-areas: "badge name" !important;
 }
 
-.value-card__link.value-card__link--compact .value-card__cta {
-  display: none !important;
-}
-
 .panel-meta,
 .eyebrow,
 .hero__filter-hint {
@@ -332,8 +328,7 @@ body.view-mode-mobile .value-card__link.value-card__link--compact {
 .memory-value-link,
 .chore-value,
 .chore-chart-value,
-.other-value-link,
-.value-card__cta {
+.other-value-link {
   color: #ffd295 !important;
 }
 
