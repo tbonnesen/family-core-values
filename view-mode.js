@@ -2,9 +2,10 @@
   const fcv = window.FCV || {};
   const STORAGE = fcv.STORAGE || {};
   const VIEW_MODE_KEY = STORAGE.VIEW_MODE || "fcv_view_mode_v1";
-  const DEFAULT_MODE = "desktop";
-  const VALID_MODES = new Set(["desktop", "mobile"]);
+  const DEFAULT_MODE = "auto";
+  const VALID_MODES = new Set(["auto", "desktop", "mobile"]);
   const MODE_CLASS_PREFIX = "view-mode-";
+  const MODE_CLASSES = [`${MODE_CLASS_PREFIX}desktop`, `${MODE_CLASS_PREFIX}mobile`];
 
   function safeGetItem(key) {
     if (typeof fcv.safeGetItem === "function") {
@@ -49,8 +50,10 @@
       return;
     }
 
-    document.body.classList.remove(`${MODE_CLASS_PREFIX}desktop`, `${MODE_CLASS_PREFIX}mobile`);
-    document.body.classList.add(`${MODE_CLASS_PREFIX}${nextMode}`);
+    document.body.classList.remove(...MODE_CLASSES);
+    if (nextMode !== "auto") {
+      document.body.classList.add(`${MODE_CLASS_PREFIX}${nextMode}`);
+    }
     document.body.dataset.viewMode = nextMode;
     updateToggleStates(nextMode);
   }

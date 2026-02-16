@@ -5,6 +5,7 @@
     REFLECTION: "fcv_reflections_v1",
     SCENARIO: "fcv_last_scenario_v1",
     CHORE_MAP: "fcv_chore_mappings_v1",
+    DASHBOARD_LAYOUT: "fcv_dashboard_layout_v1",
     PARENT_PROFILE: "fcv_parent_profile_v1",
     DASHBOARD_FILTER_PROFILE: "fcv_dashboard_filter_profile_v1",
     PROFILES: "fcv_profiles_v2",
@@ -28,7 +29,8 @@
     STORAGE.PROFILE_WEEKLY_PLANS,
     STORAGE.PROFILE_GOAL_MILESTONES,
     STORAGE.PROFILE_CHORE_APPROVAL,
-    STORAGE.CHORE_MAP
+    STORAGE.CHORE_MAP,
+    STORAGE.DASHBOARD_LAYOUT
   ];
   const SHARED_SYNC_KEY_SET = new Set(SHARED_SYNC_KEYS);
   const LOCAL_SHARED_UPDATED_AT_KEY = "fcv_shared_state_updated_at_v1";

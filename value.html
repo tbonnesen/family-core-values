@@ -7,14 +7,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Poppins:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="jeton-theme.css" />
   </head>
   <body class="value-detail-page is-loading">
     <header class="hero">
-      <div class="hero__view" data-view-mode-toggle aria-label="Choose app view mode" role="group">
+      <div class="hero__view" data-view-mode-toggle aria-label="Choose app view mode preview" role="group">
+        <button class="hero__view-btn" type="button" data-view-mode-option="auto">Auto</button>
         <button class="hero__view-btn" type="button" data-view-mode-option="desktop">Desktop</button>
         <button class="hero__view-btn" type="button" data-view-mode-option="mobile">Mobile</button>
       </div>
@@ -85,5 +87,6 @@
     <script src="view-mode.js"></script>
     <script src="value.js"></script>
     <script src="read-aloud.js"></script>
+    <script src="jeton-motion.js"></script>
   </body>
 </html>

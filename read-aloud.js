@@ -12,6 +12,16 @@
     voices: []
   };
 
+  function setButtonState(button, speaking) {
+    if (!(button instanceof HTMLElement)) {
+      return;
+    }
+    button.classList.toggle("is-speaking", Boolean(speaking));
+    button.setAttribute("aria-pressed", speaking ? "true" : "false");
+    button.setAttribute("aria-label", speaking ? "Stop reading this section aloud" : "Read this section aloud");
+    button.setAttribute("title", speaking ? "Stop reading" : "Read aloud");
+  }
+
   function isVisible(node) {
     if (!(node instanceof HTMLElement)) {
       return false;
@@ -105,8 +115,7 @@
     if (!state.activeButton) {
       return;
     }
-    state.activeButton.textContent = "Read Aloud";
-    state.activeButton.setAttribute("aria-pressed", "false");
+    setButtonState(state.activeButton, false);
     state.activeButton = null;
   }
 
@@ -121,7 +130,8 @@
 
   function speak(section, button) {
     if (!supported) {
-      button.textContent = "Not Supported";
+      button.setAttribute("aria-label", "Read aloud is not supported in this browser");
+      button.setAttribute("title", "Not supported");
       return;
     }
 
@@ -132,7 +142,8 @@
 
     const text = collectSectionText(section);
     if (!text) {
-      button.textContent = "No Text";
+      button.setAttribute("aria-label", "No readable text in this section");
+      button.setAttribute("title", "No text");
       return;
     }
 
@@ -158,8 +169,7 @@
 
     state.utterance = utterance;
     state.activeButton = button;
-    button.textContent = "Stop";
-    button.setAttribute("aria-pressed", "true");
+    setButtonState(button, true);
     synth.speak(utterance);
   }
 
@@ -178,9 +188,8 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = "read-aloud-btn";
-      button.textContent = "Read Aloud";
-      button.setAttribute("aria-pressed", "false");
-      button.setAttribute("aria-label", "Read this section aloud");
+      button.textContent = "Read aloud";
+      setButtonState(button, false);
       button.addEventListener("click", () => speak(section, button));
 
       section.prepend(button);

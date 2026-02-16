@@ -7,14 +7,16 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=Poppins:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="jeton-theme.css" />
   </head>
   <body class="is-loading">
     <header class="hero">
-      <div class="hero__view" data-view-mode-toggle aria-label="Choose app view mode" role="group">
+      <div class="hero__view" data-view-mode-toggle aria-label="Choose app view mode preview" role="group">
+        <button class="hero__view-btn" type="button" data-view-mode-option="auto">Auto</button>
         <button class="hero__view-btn" type="button" data-view-mode-option="desktop">Desktop</button>
         <button class="hero__view-btn" type="button" data-view-mode-option="mobile">Mobile</button>
       </div>
@@ -24,6 +26,12 @@
         <p class="intro">
           Practice one value at a time with stories, choices, and reflections.
         </p>
+        <div class="hero__layout-controls" aria-label="Dashboard layout controls">
+          <button id="layout-edit-toggle" class="btn btn--small" type="button">Customize Layout</button>
+          <button id="layout-save" class="btn btn--small" type="button" disabled>Save Layout</button>
+          <button id="layout-reset" class="btn btn--small btn--danger" type="button">Reset Layout</button>
+          <p id="layout-status" class="hero__layout-status" aria-live="polite"></p>
+        </div>
       </div>
       <div class="hero__filter">
         <label class="hero__filter-label" for="dashboard-profile-filter">Dashboard Filter</label>
@@ -257,7 +265,6 @@
           <span class="value-card__badge"></span>
           <span class="value-card__name"></span>
           <span class="value-card__summary"></span>
-          <span class="value-card__cta">Open</span>
         </a>
       </article>
     </template>
@@ -267,5 +274,6 @@
     <script src="view-mode.js"></script>
     <script src="app.js"></script>
     <script src="read-aloud.js"></script>
+    <script src="jeton-motion.js"></script>
   </body>
 </html>

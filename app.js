@@ -188,6 +188,7 @@ const STORAGE = fcv.STORAGE || {
   REFLECTION: "fcv_reflections_v1",
   SCENARIO: "fcv_last_scenario_v1",
   CHORE_MAP: "fcv_chore_mappings_v1",
+  DASHBOARD_LAYOUT: "fcv_dashboard_layout_v1",
   PARENT_PROFILE: "fcv_parent_profile_v1",
   DASHBOARD_FILTER_PROFILE: "fcv_dashboard_filter_profile_v1",
   PROFILES: "fcv_profiles_v2",
@@ -288,10 +289,36 @@ const valueSuggestList = document.getElementById("value-suggest-list");
 const milestoneSummary = document.getElementById("milestone-summary");
 const milestoneValueFilter = document.getElementById("milestone-value-filter");
 const milestoneList = document.getElementById("milestone-list");
+const dashboardLayout = document.querySelector(".layout");
+const layoutEditToggleBtn = document.getElementById("layout-edit-toggle");
+const layoutSaveBtn = document.getElementById("layout-save");
+const layoutResetBtn = document.getElementById("layout-reset");
+const layoutStatus = document.getElementById("layout-status");
 
 const panelParent = document.querySelector(".panel--parent");
 const panelChallenge = document.querySelector(".panel--challenge");
 const memoryGamePanel = document.querySelector(".memory-game");
+
+const DEFAULT_DASHBOARD_LAYOUT_SPANS = {
+  spotlight: { col: 2, row: 2 },
+  progress: { col: 2, row: 2 },
+  weekly: { col: 3, row: 2 },
+  chorechart: { col: 3, row: 2 },
+  "weekly-plan": { col: 4, row: 3 },
+  "value-suggestions": { col: 4, row: 3 },
+  milestones: { col: 4, row: 3 },
+  memory: { col: 12, row: 2 },
+  values: { col: 8, row: 3 },
+  challenge: { col: 4, row: 3 },
+  chores: { col: 6, row: 3 },
+  reflection: { col: 3, row: 3 },
+  parent: { col: 3, row: 3 },
+  approvals: { col: 6, row: 3 },
+  profiles: { col: 12, row: 2 }
+};
+const FALLBACK_PANEL_SPAN = { col: 4, row: 2 };
+const MIN_LAYOUT_COL_SPAN = 1;
+const MAX_LAYOUT_ROW_SPAN = 6;
 
 let profiles = [];
 let activeProfileId = null;
@@ -311,6 +338,15 @@ let weeklyPlanControlsBound = false;
 let valueSuggestionControlsBound = false;
 let milestoneControlsBound = false;
 let parentApprovalControlsBound = false;
+let layoutEditorBound = false;
+let layoutEditMode = false;
+let layoutHasUnsavedChanges = false;
+let savedDashboardLayoutState = null;
+let draftDashboardLayoutState = null;
+let activeLayoutDragPanelId = "";
+let activePanelResizeSession = null;
+let layoutResizeRaf = 0;
+let layoutModeObserver = null;
 
 let currentScenario = null;
 let memoryVisible = false;
@@ -517,6 +553,567 @@ function getValueToneClass(identifier) {
 
   const index = values.findIndex((item) => item.name === value.name);
   return index >= 0 ? `value-tone-${(index % values.length) + 1}` : "";
+}
+
+function cloneLayoutState(state) {
+  if (!state || typeof state !== "object") {
+    return null;
+  }
+  return {
+    order: Array.isArray(state.order) ? state.order.slice() : [],
+    sizes: isPlainObject(state.sizes)
+      ? Object.fromEntries(
+          Object.entries(state.sizes).map(([key, value]) => [
+            key,
+            {
+              col: Number(value && value.col) || FALLBACK_PANEL_SPAN.col,
+              row: Number(value && value.row) || FALLBACK_PANEL_SPAN.row
+            }
+          ])
+        )
+      : {}
+  };
+}
+
+function getDashboardPanels() {
+  if (!dashboardLayout) {
+    return [];
+  }
+  return Array.from(dashboardLayout.querySelectorAll(":scope > .panel"));
+}
+
+function resolvePanelLayoutId(panel, fallbackIndex = 0) {
+  if (!panel) {
+    return `panel-${fallbackIndex + 1}`;
+  }
+
+  if (panel.dataset.layoutPanelId) {
+    return panel.dataset.layoutPanelId;
+  }
+
+  const className = Array.from(panel.classList).find((token) => token.startsWith("panel--"));
+  const panelId = className ? className.replace("panel--", "") : `panel-${fallbackIndex + 1}`;
+  panel.dataset.layoutPanelId = panelId;
+  return panelId;
+}
+
+function getDefaultPanelSpan(panelId) {
+  if (panelId && DEFAULT_DASHBOARD_LAYOUT_SPANS[panelId]) {
+    return DEFAULT_DASHBOARD_LAYOUT_SPANS[panelId];
+  }
+  return FALLBACK_PANEL_SPAN;
+}
+
+function parseSpanFromGridValue(value) {
+  if (typeof value !== "string") {
+    return NaN;
+  }
+  const match = value.match(/span\s+(\d+)/i);
+  if (!match) {
+    return NaN;
+  }
+  return Number(match[1]);
+}
+
+function getGridColumnCount() {
+  if (!dashboardLayout) {
+    return 1;
+  }
+
+  const template = window.getComputedStyle(dashboardLayout).gridTemplateColumns;
+  if (!template || template === "none") {
+    return 1;
+  }
+
+  return template
+    .split(" ")
+    .map((token) => token.trim())
+    .filter(Boolean).length;
+}
+
+function clampPanelSpan(span, maxCols = 12) {
+  const colLimit = Math.max(MIN_LAYOUT_COL_SPAN, Number(maxCols) || 1);
+  const col = Math.min(colLimit, Math.max(MIN_LAYOUT_COL_SPAN, Number(span && span.col) || FALLBACK_PANEL_SPAN.col));
+  const row = Math.min(MAX_LAYOUT_ROW_SPAN, Math.max(1, Number(span && span.row) || FALLBACK_PANEL_SPAN.row));
+  return { col, row };
+}
+
+function readPanelSpan(panel) {
+  const panelId = resolvePanelLayoutId(panel);
+  const defaults = getDefaultPanelSpan(panelId);
+
+  const colFromData = Number(panel.dataset.layoutColSpan);
+  const rowFromData = Number(panel.dataset.layoutRowSpan);
+
+  const colFromStyle = parseSpanFromGridValue(panel.style.getPropertyValue("grid-column"));
+  const rowFromStyle = parseSpanFromGridValue(panel.style.getPropertyValue("grid-row"));
+
+  return clampPanelSpan(
+    {
+      col: Number.isFinite(colFromData) && colFromData > 0 ? colFromData : Number.isFinite(colFromStyle) && colFromStyle > 0 ? colFromStyle : defaults.col,
+      row: Number.isFinite(rowFromData) && rowFromData > 0 ? rowFromData : Number.isFinite(rowFromStyle) && rowFromStyle > 0 ? rowFromStyle : defaults.row
+    },
+    12
+  );
+}
+
+function setLayoutStatusMessage(message) {
+  if (!layoutStatus) {
+    return;
+  }
+  layoutStatus.textContent = message || "";
+}
+
+function updateLayoutControlState() {
+  if (!layoutEditToggleBtn) {
+    return;
+  }
+
+  layoutEditToggleBtn.textContent = layoutEditMode ? "Done Customizing" : "Customize Layout";
+  layoutEditToggleBtn.setAttribute("aria-pressed", layoutEditMode ? "true" : "false");
+  layoutEditToggleBtn.classList.toggle("is-active", layoutEditMode);
+
+  if (layoutSaveBtn) {
+    layoutSaveBtn.disabled = !layoutHasUnsavedChanges;
+  }
+
+  if (layoutResetBtn) {
+    layoutResetBtn.disabled = false;
+  }
+
+  document.body.classList.toggle("layout-editing", layoutEditMode);
+}
+
+function updatePanelSizeBadge(panel) {
+  const badge = panel.querySelector(":scope > .panel-layout-size");
+  if (!badge) {
+    return;
+  }
+
+  const span = readPanelSpan(panel);
+  badge.textContent = `${span.col} x ${span.row}`;
+}
+
+function applyPanelSpan(panel, span, maxCols = getGridColumnCount()) {
+  const normalized = clampPanelSpan(span, maxCols);
+  panel.dataset.layoutColSpan = String(normalized.col);
+  panel.dataset.layoutRowSpan = String(normalized.row);
+  panel.style.setProperty("grid-column", `span ${normalized.col}`, "important");
+  panel.style.setProperty("grid-row", `span ${normalized.row}`, "important");
+  updatePanelSizeBadge(panel);
+  return normalized;
+}
+
+function ensurePanelLayoutAffordances(panel, index = 0) {
+  resolvePanelLayoutId(panel, index);
+  panel.classList.add("panel-layout-target");
+
+  if (!panel.querySelector(":scope > .panel-layout-drag")) {
+    const dragHandle = document.createElement("button");
+    dragHandle.type = "button";
+    dragHandle.className = "panel-layout-drag";
+    dragHandle.textContent = "Move";
+    dragHandle.draggable = true;
+    dragHandle.setAttribute("aria-label", "Drag to reorder this section");
+    dragHandle.addEventListener("dragstart", (event) => {
+      handleLayoutDragStart(event, panel);
+    });
+    dragHandle.addEventListener("dragend", handleLayoutDragEnd);
+    panel.appendChild(dragHandle);
+  }
+
+  if (!panel.querySelector(":scope > .panel-layout-size")) {
+    const sizeBadge = document.createElement("span");
+    sizeBadge.className = "panel-layout-size";
+    sizeBadge.textContent = "0 x 0";
+    sizeBadge.setAttribute("aria-hidden", "true");
+    panel.appendChild(sizeBadge);
+  }
+
+  if (!panel.querySelector(":scope > .panel-layout-resize")) {
+    const resizeHandle = document.createElement("button");
+    resizeHandle.type = "button";
+    resizeHandle.className = "panel-layout-resize";
+    resizeHandle.setAttribute("aria-label", "Resize this section");
+    resizeHandle.title = "Resize section";
+    resizeHandle.addEventListener("pointerdown", (event) => {
+      startPanelResize(event, panel);
+    });
+    panel.appendChild(resizeHandle);
+  }
+
+  updatePanelSizeBadge(panel);
+}
+
+function normalizeDashboardLayoutState(rawState) {
+  const panels = getDashboardPanels();
+  const knownIds = panels.map((panel, index) => resolvePanelLayoutId(panel, index));
+  const knownSet = new Set(knownIds);
+
+  const incomingOrder = Array.isArray(rawState && rawState.order) ? rawState.order.filter((id) => typeof id === "string" && knownSet.has(id)) : [];
+  const order = unique([...incomingOrder, ...knownIds]);
+
+  const incomingSizes = isPlainObject(rawState && rawState.sizes) ? rawState.sizes : {};
+  const sizes = {};
+
+  order.forEach((id) => {
+    const defaults = getDefaultPanelSpan(id);
+    const candidate = incomingSizes[id];
+    sizes[id] = clampPanelSpan(
+      {
+        col: Number(candidate && candidate.col) || defaults.col,
+        row: Number(candidate && candidate.row) || defaults.row
+      },
+      12
+    );
+  });
+
+  return { order, sizes };
+}
+
+function buildDefaultDashboardLayoutState() {
+  const panels = getDashboardPanels();
+  const order = panels.map((panel, index) => resolvePanelLayoutId(panel, index));
+  const sizes = {};
+  order.forEach((id) => {
+    sizes[id] = clampPanelSpan(getDefaultPanelSpan(id), 12);
+  });
+  return { order, sizes };
+}
+
+function buildLayoutStateFromDom() {
+  const panels = getDashboardPanels();
+  const order = panels.map((panel, index) => resolvePanelLayoutId(panel, index));
+  const sizes = {};
+
+  panels.forEach((panel, index) => {
+    const panelId = resolvePanelLayoutId(panel, index);
+    sizes[panelId] = readPanelSpan(panel);
+  });
+
+  return normalizeDashboardLayoutState({ order, sizes });
+}
+
+function loadSavedDashboardLayoutState() {
+  const stored = loadJSON(STORAGE.DASHBOARD_LAYOUT, null);
+  if (!stored || typeof stored !== "object") {
+    return buildDefaultDashboardLayoutState();
+  }
+  return normalizeDashboardLayoutState(stored);
+}
+
+function saveDashboardLayoutState(state) {
+  saveJSON(STORAGE.DASHBOARD_LAYOUT, normalizeDashboardLayoutState(state));
+}
+
+function applyDashboardLayoutState(rawState) {
+  if (!dashboardLayout) {
+    return null;
+  }
+
+  const state = normalizeDashboardLayoutState(rawState);
+  const panels = getDashboardPanels();
+  const panelById = new Map();
+  panels.forEach((panel, index) => {
+    ensurePanelLayoutAffordances(panel, index);
+    panelById.set(resolvePanelLayoutId(panel, index), panel);
+  });
+
+  state.order.forEach((id) => {
+    const panel = panelById.get(id);
+    if (panel) {
+      dashboardLayout.appendChild(panel);
+    }
+  });
+
+  const maxCols = getGridColumnCount();
+  state.order.forEach((id) => {
+    const panel = panelById.get(id);
+    if (!panel) {
+      return;
+    }
+    const span = state.sizes[id] || getDefaultPanelSpan(id);
+    applyPanelSpan(panel, span, maxCols);
+  });
+
+  setPanelStaggerIndexes(".layout > .panel");
+  return state;
+}
+
+function findPanelByLayoutId(panelId) {
+  if (!panelId) {
+    return null;
+  }
+  return getDashboardPanels().find((panel) => resolvePanelLayoutId(panel) === panelId) || null;
+}
+
+function markLayoutAsDirty() {
+  layoutHasUnsavedChanges = true;
+  draftDashboardLayoutState = buildLayoutStateFromDom();
+  setLayoutStatusMessage("Layout updated. Click Save Layout to keep it.");
+  updateLayoutControlState();
+}
+
+function handleLayoutDragStart(event, panel) {
+  if (!layoutEditMode) {
+    event.preventDefault();
+    return;
+  }
+
+  const panelId = resolvePanelLayoutId(panel);
+  activeLayoutDragPanelId = panelId;
+  panel.classList.add("is-layout-dragging");
+  if (dashboardLayout) {
+    dashboardLayout.classList.add("is-layout-dragging");
+  }
+
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", panelId);
+  }
+}
+
+function handleLayoutDragEnd() {
+  const panel = findPanelByLayoutId(activeLayoutDragPanelId);
+  if (panel) {
+    panel.classList.remove("is-layout-dragging");
+  }
+  if (dashboardLayout) {
+    dashboardLayout.classList.remove("is-layout-dragging");
+  }
+
+  if (activeLayoutDragPanelId) {
+    markLayoutAsDirty();
+  }
+  activeLayoutDragPanelId = "";
+}
+
+function handleLayoutDragOver(event) {
+  if (!layoutEditMode || !activeLayoutDragPanelId || !dashboardLayout) {
+    return;
+  }
+
+  event.preventDefault();
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = "move";
+  }
+
+  const draggedPanel = findPanelByLayoutId(activeLayoutDragPanelId);
+  const targetPanel = event.target.closest(".layout > .panel");
+  if (!draggedPanel || !targetPanel || targetPanel === draggedPanel) {
+    return;
+  }
+
+  const targetRect = targetPanel.getBoundingClientRect();
+  const placeAfter = event.clientY > targetRect.top + targetRect.height / 2;
+  const referenceNode = placeAfter ? targetPanel.nextElementSibling : targetPanel;
+  if (referenceNode === draggedPanel) {
+    return;
+  }
+
+  dashboardLayout.insertBefore(draggedPanel, referenceNode);
+}
+
+function handleLayoutDrop(event) {
+  if (!layoutEditMode || !activeLayoutDragPanelId) {
+    return;
+  }
+  event.preventDefault();
+}
+
+function startPanelResize(event, panel) {
+  if (!layoutEditMode || !dashboardLayout || event.button !== 0) {
+    return;
+  }
+
+  event.preventDefault();
+  event.stopPropagation();
+
+  const panelId = resolvePanelLayoutId(panel);
+  const span = readPanelSpan(panel);
+  const maxCols = getGridColumnCount();
+  const layoutRect = dashboardLayout.getBoundingClientRect();
+  const layoutStyle = window.getComputedStyle(dashboardLayout);
+  const gap = parseFloat(layoutStyle.columnGap || layoutStyle.gap || "16") || 16;
+  const trackWidth = maxCols > 1 ? (layoutRect.width - gap * (maxCols - 1)) / maxCols : layoutRect.width;
+  const panelRect = panel.getBoundingClientRect();
+  const rowUnit = Math.max(84, panelRect.height / Math.max(span.row, 1));
+
+  activePanelResizeSession = {
+    panelId,
+    startX: event.clientX,
+    startY: event.clientY,
+    startCol: span.col,
+    startRow: span.row,
+    colUnit: Math.max(72, trackWidth + gap),
+    rowUnit,
+    changed: false
+  };
+
+  document.body.classList.add("is-layout-resizing");
+  window.addEventListener("pointermove", handlePanelResizeMove);
+  window.addEventListener("pointerup", stopPanelResize);
+  window.addEventListener("pointercancel", stopPanelResize);
+}
+
+function handlePanelResizeMove(event) {
+  if (!activePanelResizeSession || !dashboardLayout) {
+    return;
+  }
+
+  const session = activePanelResizeSession;
+  const panel = findPanelByLayoutId(session.panelId);
+  if (!panel) {
+    return;
+  }
+
+  const deltaCol = Math.round((event.clientX - session.startX) / session.colUnit);
+  const deltaRow = Math.round((event.clientY - session.startY) / session.rowUnit);
+  const maxCols = getGridColumnCount();
+  const nextSpan = clampPanelSpan(
+    {
+      col: session.startCol + deltaCol,
+      row: session.startRow + deltaRow
+    },
+    maxCols
+  );
+  const previous = readPanelSpan(panel);
+
+  if (previous.col !== nextSpan.col || previous.row !== nextSpan.row) {
+    applyPanelSpan(panel, nextSpan, maxCols);
+    session.changed = true;
+  }
+}
+
+function stopPanelResize() {
+  if (!activePanelResizeSession) {
+    return;
+  }
+
+  const didChange = activePanelResizeSession.changed;
+  activePanelResizeSession = null;
+  document.body.classList.remove("is-layout-resizing");
+  window.removeEventListener("pointermove", handlePanelResizeMove);
+  window.removeEventListener("pointerup", stopPanelResize);
+  window.removeEventListener("pointercancel", stopPanelResize);
+
+  if (didChange) {
+    markLayoutAsDirty();
+  }
+}
+
+function toggleLayoutEditMode() {
+  layoutEditMode = !layoutEditMode;
+  if (layoutEditMode) {
+    setLayoutStatusMessage("Drag sections to reorder. Use the bottom-right corner grip to resize.");
+  } else if (layoutHasUnsavedChanges) {
+    setLayoutStatusMessage("Layout changed. Click Save Layout to keep it.");
+  } else {
+    setLayoutStatusMessage("");
+  }
+  updateLayoutControlState();
+}
+
+function saveCurrentDashboardLayout() {
+  const nextState = buildLayoutStateFromDom();
+  saveDashboardLayoutState(nextState);
+  savedDashboardLayoutState = cloneLayoutState(nextState);
+  draftDashboardLayoutState = cloneLayoutState(nextState);
+  layoutHasUnsavedChanges = false;
+  setLayoutStatusMessage("Layout saved.");
+  updateLayoutControlState();
+}
+
+function resetDashboardLayout() {
+  const defaults = buildDefaultDashboardLayoutState();
+  const applied = applyDashboardLayoutState(defaults) || defaults;
+  saveDashboardLayoutState(applied);
+  savedDashboardLayoutState = cloneLayoutState(applied);
+  draftDashboardLayoutState = cloneLayoutState(applied);
+  layoutHasUnsavedChanges = false;
+  setLayoutStatusMessage("Layout reset and saved.");
+  updateLayoutControlState();
+}
+
+function scheduleDashboardLayoutReflow() {
+  if (layoutResizeRaf || !dashboardLayout) {
+    return;
+  }
+
+  layoutResizeRaf = window.requestAnimationFrame(() => {
+    layoutResizeRaf = 0;
+    const sourceState = layoutHasUnsavedChanges && draftDashboardLayoutState ? draftDashboardLayoutState : savedDashboardLayoutState;
+    if (!sourceState) {
+      return;
+    }
+    const applied = applyDashboardLayoutState(sourceState);
+    if (layoutHasUnsavedChanges) {
+      draftDashboardLayoutState = cloneLayoutState(applied);
+    } else {
+      savedDashboardLayoutState = cloneLayoutState(applied);
+    }
+  });
+}
+
+function applySavedDashboardLayoutFromStorage(options = {}) {
+  if (!dashboardLayout) {
+    return;
+  }
+
+  const { force = false } = options;
+  const nextSaved = loadSavedDashboardLayoutState();
+  savedDashboardLayoutState = cloneLayoutState(nextSaved);
+
+  if (layoutHasUnsavedChanges && !force) {
+    return;
+  }
+
+  const applied = applyDashboardLayoutState(savedDashboardLayoutState);
+  savedDashboardLayoutState = cloneLayoutState(applied || savedDashboardLayoutState);
+  draftDashboardLayoutState = cloneLayoutState(savedDashboardLayoutState);
+  layoutHasUnsavedChanges = false;
+  updateLayoutControlState();
+}
+
+function initDashboardLayoutEditor() {
+  if (layoutEditorBound || !dashboardLayout) {
+    return;
+  }
+
+  getDashboardPanels().forEach((panel, index) => {
+    ensurePanelLayoutAffordances(panel, index);
+  });
+
+  applySavedDashboardLayoutFromStorage({ force: true });
+
+  dashboardLayout.addEventListener("dragover", handleLayoutDragOver);
+  dashboardLayout.addEventListener("drop", handleLayoutDrop);
+
+  if (layoutEditToggleBtn) {
+    layoutEditToggleBtn.addEventListener("click", toggleLayoutEditMode);
+  }
+
+  if (layoutSaveBtn) {
+    layoutSaveBtn.addEventListener("click", saveCurrentDashboardLayout);
+  }
+
+  if (layoutResetBtn) {
+    layoutResetBtn.addEventListener("click", resetDashboardLayout);
+  }
+
+  window.addEventListener("resize", scheduleDashboardLayoutReflow);
+  if (!layoutModeObserver && document.body && typeof MutationObserver === "function") {
+    layoutModeObserver = new MutationObserver(() => {
+      scheduleDashboardLayoutReflow();
+    });
+    layoutModeObserver.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class", "data-view-mode"]
+    });
+  }
+
+  layoutEditorBound = true;
+  updateLayoutControlState();
 }
 
 function getDefaultProgress() {
@@ -1597,7 +2194,10 @@ function buildValueCards() {
     badge.style.viewTransitionName = `value-badge-${slug}`;
     name.textContent = value.name;
     name.style.viewTransitionName = `value-title-${slug}`;
-    summary.textContent = value.meaning;
+    summary.textContent = "";
+    summary.classList.add("is-hidden");
+    summary.setAttribute("aria-hidden", "true");
+    link.classList.add("value-card__link--compact");
 
     valueGrid.appendChild(fragment);
   });
@@ -3027,6 +3627,7 @@ function startDashboardApp() {
   setProgress(getActiveProgress());
   loadScenario();
   renderProfileDrivenPanels();
+  initDashboardLayoutEditor();
   loadReflections();
   markPageReady();
 }
@@ -3042,6 +3643,7 @@ function refreshDashboardFromSharedState() {
     setActiveProfile(activeProfileId, { refreshScenario: false });
   }
   renderProfileDrivenPanels();
+  applySavedDashboardLayoutFromStorage();
   loadReflections();
 }
 
