@@ -15,7 +15,8 @@
     PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2",
     PROFILE_WEEKLY_PLANS: "fcv_profile_weekly_plans_v1",
     PROFILE_GOAL_MILESTONES: "fcv_profile_goal_milestones_v1",
-    PROFILE_CHORE_APPROVAL: "fcv_profile_chore_approval_v1"
+    PROFILE_CHORE_APPROVAL: "fcv_profile_chore_approval_v1",
+    VIEW_MODE: "fcv_view_mode_v1"
   };
   const SHARED_SYNC_KEYS = [
     STORAGE.PARENT_PROFILE,
@@ -108,6 +109,109 @@
     }
 
     return false;
+  }
+
+  function isPlainObject(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function hasIdField(item) {
+    return Boolean(item) && typeof item === "object" && !Array.isArray(item) && typeof item.id === "string" && item.id;
+  }
+
+  function tryParseJson(raw) {
+    if (typeof raw !== "string") {
+      return undefined;
+    }
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
+
+  function mergeArrays(localArray, remoteArray) {
+    const local = Array.isArray(localArray) ? localArray : [];
+    const remote = Array.isArray(remoteArray) ? remoteArray : [];
+    const localHasIds = local.length && local.every((item) => hasIdField(item));
+    const remoteHasIds = remote.length && remote.every((item) => hasIdField(item));
+
+    if (localHasIds && remoteHasIds) {
+      const byId = new Map();
+      remote.forEach((item) => {
+        byId.set(item.id, item);
+      });
+      local.forEach((item) => {
+        const existing = byId.get(item.id);
+        byId.set(item.id, existing ? mergeParsed(item, existing) : item);
+      });
+      return Array.from(byId.values());
+    }
+
+    return local.length >= remote.length ? local : remote;
+  }
+
+  function mergeParsed(localValue, remoteValue) {
+    if (typeof localValue === "undefined") {
+      return remoteValue;
+    }
+    if (typeof remoteValue === "undefined") {
+      return localValue;
+    }
+
+    if (Array.isArray(localValue) && Array.isArray(remoteValue)) {
+      return mergeArrays(localValue, remoteValue);
+    }
+
+    if (isPlainObject(localValue) && isPlainObject(remoteValue)) {
+      const merged = { ...remoteValue };
+      Object.keys(localValue).forEach((key) => {
+        merged[key] = mergeParsed(localValue[key], remoteValue[key]);
+      });
+      return merged;
+    }
+
+    return localValue;
+  }
+
+  function mergeSharedState(localState, remoteState) {
+    const merged = {};
+
+    SHARED_SYNC_KEYS.forEach((key) => {
+      const localRaw = typeof localState[key] === "string" ? localState[key] : null;
+      const remoteRaw = typeof remoteState[key] === "string" ? remoteState[key] : null;
+
+      if (localRaw === null && remoteRaw === null) {
+        return;
+      }
+      if (localRaw === null) {
+        merged[key] = remoteRaw;
+        return;
+      }
+      if (remoteRaw === null) {
+        merged[key] = localRaw;
+        return;
+      }
+      if (localRaw === remoteRaw) {
+        merged[key] = localRaw;
+        return;
+      }
+
+      const localParsed = tryParseJson(localRaw);
+      const remoteParsed = tryParseJson(remoteRaw);
+      if (typeof localParsed !== "undefined" && typeof remoteParsed !== "undefined") {
+        try {
+          merged[key] = JSON.stringify(mergeParsed(localParsed, remoteParsed));
+          return;
+        } catch {
+          // Fall through to raw merge.
+        }
+      }
+
+      merged[key] = localRaw || remoteRaw;
+    });
+
+    return merged;
   }
 
   function hasAnySharedState(state) {
@@ -450,8 +554,11 @@
       }
 
       if ((localHasState && localUpdatedAtMs && localUpdatedAtMs > remoteUpdatedAtMs) || preferLocalByHeuristic) {
+        const mergedState = mergeSharedState(localState, remoteState);
+        applySharedStateFromRemote(mergedState);
         lastRemoteUpdatedAt = remoteUpdatedAt;
-        lastRemoteStateSignature = remoteStateSignature;
+        lastRemoteStateSignature = JSON.stringify(mergedState);
+        global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: lastRemoteUpdatedAt } }));
         scheduleSharedStatePush(0);
         return;
       }
@@ -533,6 +640,10 @@
       syncEnabled = true;
 
       if (localLooksNewer) {
+        const mergedState = mergeSharedState(localBefore, remoteState);
+        applySharedStateFromRemote(mergedState);
+        lastRemoteStateSignature = JSON.stringify(mergedState);
+        global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: lastRemoteUpdatedAt } }));
         scheduleSharedStatePush(0);
       } else if (lastRemoteUpdatedAt || Object.keys(remoteState).length) {
         applySharedStateFromRemote(remoteState);

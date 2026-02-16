@@ -198,7 +198,8 @@ const STORAGE = fcv.STORAGE || {
   PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2",
   PROFILE_WEEKLY_PLANS: "fcv_profile_weekly_plans_v1",
   PROFILE_GOAL_MILESTONES: "fcv_profile_goal_milestones_v1",
-  PROFILE_CHORE_APPROVAL: "fcv_profile_chore_approval_v1"
+  PROFILE_CHORE_APPROVAL: "fcv_profile_chore_approval_v1",
+  VIEW_MODE: "fcv_view_mode_v1"
 };
 
 const valueGrid = document.getElementById("value-grid");
