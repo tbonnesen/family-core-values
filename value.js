@@ -18,7 +18,8 @@ const otherValuesEl = document.getElementById("other-values");
 const VALUE_TRANSITION_KEY = "fcv_transition_value_slug";
 const STORAGE = fcv.STORAGE || {
   PROFILES: "fcv_profiles_v2",
-  ACTIVE_PROFILE: "fcv_active_profile_v2"
+  ACTIVE_PROFILE: "fcv_active_profile_v2",
+  DASHBOARD_FILTER_PROFILE: "fcv_dashboard_filter_profile_v1"
 };
 let valueLinkTransitionBound = false;
 
@@ -169,12 +170,22 @@ function renderAgeExamples(target, items) {
 
 function getActiveProfileContext() {
   const profiles = loadJSON(STORAGE.PROFILES, []);
-  const activeProfileId = safeGetItem(STORAGE.ACTIVE_PROFILE);
-  if (!Array.isArray(profiles) || !profiles.length || !activeProfileId) {
+  const dashboardFilterProfileId = safeGetItem(STORAGE.DASHBOARD_FILTER_PROFILE) || "all";
+  if (dashboardFilterProfileId === "all") {
     return null;
   }
 
-  const profile = profiles.find((item) => item && item.id === activeProfileId);
+  const activeProfileId = safeGetItem(STORAGE.ACTIVE_PROFILE);
+  if (!Array.isArray(profiles) || !profiles.length) {
+    return null;
+  }
+
+  const preferredProfileId = dashboardFilterProfileId || activeProfileId;
+  if (!preferredProfileId) {
+    return null;
+  }
+
+  const profile = profiles.find((item) => item && item.id === preferredProfileId);
   if (!profile) {
     return null;
   }
