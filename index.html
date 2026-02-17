@@ -52,12 +52,6 @@
         <a id="weekly-link" class="panel-link" href="value.html">Open Value Page</a>
       </section>
 
-      <section class="panel panel--chorechart" aria-labelledby="chorechart-title">
-        <h2 id="chorechart-title">Chore Chart</h2>
-        <p class="spotlight-message">Open a full chart that groups assigned chores by child profile.</p>
-        <a class="btn chore-chart-link" href="chore-chart.html">Open Chore Chart</a>
-      </section>
-
       <section class="panel panel--weekly-plan" aria-labelledby="weekly-plan-title">
         <h2 id="weekly-plan-title">Personalized Weekly Plan</h2>
         <p id="weekly-plan-meta" class="panel-meta"></p>
@@ -74,24 +68,6 @@
           <button class="btn btn--alt" type="submit">Add Plan Step</button>
         </form>
         <ul id="weekly-plan-list" class="chore-list"></ul>
-      </section>
-
-      <section class="panel panel--value-suggestions" aria-labelledby="value-suggestions-title">
-        <h2 id="value-suggestions-title">Value-To-Chore Suggestions</h2>
-        <p class="hint">Pick a value and quickly add suggested chores to any child.</p>
-        <div class="suggestions-controls">
-          <select id="value-suggest-value" aria-label="Select value for suggested chores"></select>
-          <select id="value-suggest-profile" aria-label="Select child profile for suggested chores"></select>
-        </div>
-        <ul id="value-suggest-list" class="suggestions-list"></ul>
-      </section>
-
-      <section class="panel panel--milestones" aria-labelledby="milestones-title">
-        <h2 id="milestones-title">Goal Milestones By Age</h2>
-        <p id="milestone-summary" class="spotlight-message"></p>
-        <label class="field-label" for="milestone-value-filter">Value Focus</label>
-        <select id="milestone-value-filter" aria-label="Filter milestones by value"></select>
-        <div id="milestone-list" class="milestones-list"></div>
       </section>
 
       <section class="panel panel--memory" aria-labelledby="memory-title">
@@ -135,6 +111,30 @@
         <div id="choices" class="choices"></div>
         <p id="scenario-result" class="scenario-result" aria-live="polite"></p>
         <button id="next-scenario" class="btn">New Scenario</button>
+      </section>
+
+      <section class="panel panel--chorechart" aria-labelledby="chorechart-title">
+        <h2 id="chorechart-title">Chore Chart</h2>
+        <p class="spotlight-message">Open a full chart that groups assigned chores by child profile.</p>
+        <a class="btn chore-chart-link" href="chore-chart.html">Open Chore Chart</a>
+      </section>
+
+      <section class="panel panel--value-suggestions" aria-labelledby="value-suggestions-title">
+        <h2 id="value-suggestions-title">Value-To-Chore Suggestions</h2>
+        <p class="hint">Pick a value and quickly add suggested chores to any child.</p>
+        <div class="suggestions-controls">
+          <select id="value-suggest-value" aria-label="Select value for suggested chores"></select>
+          <select id="value-suggest-profile" aria-label="Select child profile for suggested chores"></select>
+        </div>
+        <ul id="value-suggest-list" class="suggestions-list"></ul>
+      </section>
+
+      <section class="panel panel--milestones" aria-labelledby="milestones-title">
+        <h2 id="milestones-title">Goal Milestones By Age</h2>
+        <p id="milestone-summary" class="spotlight-message"></p>
+        <label class="field-label" for="milestone-value-filter">Value Focus</label>
+        <select id="milestone-value-filter" aria-label="Filter milestones by value"></select>
+        <div id="milestone-list" class="milestones-list"></div>
       </section>
 
       <section class="panel panel--chores" aria-labelledby="chores-title">
