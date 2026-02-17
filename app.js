@@ -298,6 +298,7 @@ const layoutStatus = document.getElementById("layout-status");
 const panelParent = document.querySelector(".panel--parent");
 const panelChallenge = document.querySelector(".panel--challenge");
 const memoryGamePanel = document.querySelector(".memory-game");
+const LAYOUT_PROGRESS_POSITION_MIGRATION_KEY = "fcv_layout_progress_position_migration_v1";
 
 const DEFAULT_DASHBOARD_LAYOUT_SPANS = {
   spotlight: { col: 2, row: 2 },
@@ -837,12 +838,58 @@ function buildLayoutStateFromDom() {
   return normalizeDashboardLayoutState({ order, sizes });
 }
 
+function movePanelOrderNearApprovals(order) {
+  if (!Array.isArray(order)) {
+    return [];
+  }
+
+  const nextOrder = order.filter((id) => id !== "progress");
+  const approvalsIndex = nextOrder.indexOf("approvals");
+  if (approvalsIndex === -1) {
+    nextOrder.push("progress");
+    return nextOrder;
+  }
+  nextOrder.splice(approvalsIndex, 0, "progress");
+  return nextOrder;
+}
+
+function migrateSavedLayoutProgressPlacement(state) {
+  const alreadyMigrated = safeGetItem(LAYOUT_PROGRESS_POSITION_MIGRATION_KEY) === "1";
+  if (alreadyMigrated || !state || !Array.isArray(state.order)) {
+    return state;
+  }
+
+  const hasProgress = state.order.includes("progress");
+  const hasApprovals = state.order.includes("approvals");
+  if (!hasProgress || !hasApprovals) {
+    safeSetItem(LAYOUT_PROGRESS_POSITION_MIGRATION_KEY, "1");
+    return state;
+  }
+
+  const migratedOrder = movePanelOrderNearApprovals(state.order);
+  const changed = migratedOrder.some((id, index) => id !== state.order[index]) || migratedOrder.length !== state.order.length;
+  const migratedState = changed
+    ? normalizeDashboardLayoutState({
+        order: migratedOrder,
+        sizes: state.sizes
+      })
+    : state;
+
+  if (changed) {
+    saveDashboardLayoutState(migratedState);
+  }
+  safeSetItem(LAYOUT_PROGRESS_POSITION_MIGRATION_KEY, "1");
+  return migratedState;
+}
+
 function loadSavedDashboardLayoutState() {
   const stored = loadJSON(STORAGE.DASHBOARD_LAYOUT, null);
   if (!stored || typeof stored !== "object") {
+    safeSetItem(LAYOUT_PROGRESS_POSITION_MIGRATION_KEY, "1");
     return buildDefaultDashboardLayoutState();
   }
-  return normalizeDashboardLayoutState(stored);
+  const normalized = normalizeDashboardLayoutState(stored);
+  return migrateSavedLayoutProgressPlacement(normalized);
 }
 
 function saveDashboardLayoutState(state) {
