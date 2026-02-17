@@ -320,6 +320,7 @@ const DEFAULT_DASHBOARD_LAYOUT_SPANS = {
 const FALLBACK_PANEL_SPAN = { col: 4, row: 2 };
 const MIN_LAYOUT_COL_SPAN = 1;
 const MAX_LAYOUT_ROW_SPAN = 6;
+const DESKTOP_MIN_READABLE_COL_SPAN = 2;
 
 let profiles = [];
 let activeProfileId = null;
@@ -682,6 +683,34 @@ function clampPanelSpan(span, maxCols = 12) {
   return { col, row };
 }
 
+function isDesktopResolvedMode() {
+  return Boolean(
+    document.body && (document.body.classList.contains("view-mode-desktop") || document.body.dataset.viewModeResolved === "desktop")
+  );
+}
+
+function enforceDesktopReadableSpan(panel, span, maxCols = 12) {
+  const normalized = clampPanelSpan(span, maxCols);
+  if (!isDesktopResolvedMode() || maxCols < DESKTOP_MIN_READABLE_COL_SPAN) {
+    return normalized;
+  }
+
+  const panelId = resolvePanelLayoutId(panel);
+  if (panelId === "memory" || panelId === "profiles") {
+    return normalized;
+  }
+
+  const minCol = Math.min(maxCols, DESKTOP_MIN_READABLE_COL_SPAN);
+  if (normalized.col >= minCol) {
+    return normalized;
+  }
+
+  return {
+    col: minCol,
+    row: normalized.row
+  };
+}
+
 function readPanelSpan(panel) {
   const panelId = resolvePanelLayoutId(panel);
   const defaults = getDefaultPanelSpan(panelId);
@@ -739,7 +768,7 @@ function updatePanelSizeBadge(panel) {
 }
 
 function applyPanelSpan(panel, span, maxCols = getGridColumnCount()) {
-  const normalized = clampPanelSpan(span, maxCols);
+  const normalized = enforceDesktopReadableSpan(panel, span, maxCols);
   panel.dataset.layoutColSpan = String(normalized.col);
   panel.dataset.layoutRowSpan = String(normalized.row);
   panel.style.setProperty("grid-column", `span ${normalized.col}`, "important");

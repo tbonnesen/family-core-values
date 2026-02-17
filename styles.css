@@ -2260,7 +2260,7 @@ body.view-mode-desktop .layout,
 body.view-mode-desktop .detail-layout,
 body.view-mode-desktop .chore-chart-layout,
 body.view-mode-desktop .layout-controls-footer {
-  width: min(1480px, 96vw) !important;
+  width: min(1480px, calc(100vw - 1.25rem)) !important;
 }
 
 body.view-mode-desktop .hero {
