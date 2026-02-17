@@ -597,7 +597,7 @@ h3 {
 }
 
 .panel--milestones {
-  grid-column: span 4;
+  grid-column: 1 / -1;
   grid-row: span 3;
 }
 
@@ -2341,9 +2341,13 @@ body.view-mode-desktop .panel--parent {
 }
 
 body.view-mode-desktop .panel--weekly-plan,
-body.view-mode-desktop .panel--value-suggestions,
-body.view-mode-desktop .panel--milestones {
+body.view-mode-desktop .panel--value-suggestions {
   grid-column: span 4 !important;
+  grid-row: span 3 !important;
+}
+
+body.view-mode-desktop .panel--milestones {
+  grid-column: 1 / -1 !important;
   grid-row: span 3 !important;
 }
 
@@ -2374,9 +2378,12 @@ body.view-mode-desktop .detail-layout {
   body.view-mode-desktop .panel--reflection,
   body.view-mode-desktop .panel--parent,
   body.view-mode-desktop .panel--weekly-plan,
-  body.view-mode-desktop .panel--value-suggestions,
-  body.view-mode-desktop .panel--milestones {
+  body.view-mode-desktop .panel--value-suggestions {
     grid-column: span 5 !important;
+  }
+
+  body.view-mode-desktop .panel--milestones {
+    grid-column: 1 / -1 !important;
   }
 }
 
@@ -2424,9 +2431,13 @@ body.view-mode-desktop .detail-layout {
   body.view-mode-desktop .panel--parent,
   body.view-mode-desktop .panel--weekly-plan,
   body.view-mode-desktop .panel--value-suggestions,
-  body.view-mode-desktop .panel--milestones,
   body.view-mode-desktop .panel--approvals {
     grid-column: span 6 !important;
+    grid-row: span 2 !important;
+  }
+
+  body.view-mode-desktop .panel--milestones {
+    grid-column: 1 / -1 !important;
     grid-row: span 2 !important;
   }
 

@@ -300,6 +300,7 @@ const panelChallenge = document.querySelector(".panel--challenge");
 const memoryGamePanel = document.querySelector(".memory-game");
 const LAYOUT_PROGRESS_POSITION_MIGRATION_KEY = "fcv_layout_progress_position_migration_v1";
 const LAYOUT_VALUE_FOLLOWUP_POSITION_MIGRATION_KEY = "fcv_layout_value_followup_position_migration_v1";
+const LAYOUT_MILESTONES_FULL_WIDTH_MIGRATION_KEY = "fcv_layout_milestones_full_width_migration_v1";
 
 const DEFAULT_DASHBOARD_LAYOUT_SPANS = {
   spotlight: { col: 2, row: 2 },
@@ -308,7 +309,7 @@ const DEFAULT_DASHBOARD_LAYOUT_SPANS = {
   chorechart: { col: 3, row: 2 },
   "weekly-plan": { col: 4, row: 3 },
   "value-suggestions": { col: 4, row: 3 },
-  milestones: { col: 4, row: 3 },
+  milestones: { col: 12, row: 3 },
   memory: { col: 12, row: 2 },
   values: { col: 8, row: 3 },
   challenge: { col: 4, row: 3 },
@@ -697,6 +698,12 @@ function enforceDesktopReadableSpan(panel, span, maxCols = 12) {
   }
 
   const panelId = resolvePanelLayoutId(panel);
+  if (panelId === "milestones") {
+    return {
+      col: Math.max(1, Number(maxCols) || 1),
+      row: normalized.row
+    };
+  }
   if (panelId === "memory" || panelId === "profiles") {
     return normalized;
   }
@@ -956,16 +963,56 @@ function migrateSavedLayoutValueFollowupPlacement(state) {
   return migratedState;
 }
 
+function migrateSavedLayoutMilestonesFullWidth(state) {
+  const alreadyMigrated = safeGetItem(LAYOUT_MILESTONES_FULL_WIDTH_MIGRATION_KEY) === "1";
+  if (alreadyMigrated || !state || !Array.isArray(state.order)) {
+    return state;
+  }
+
+  if (!state.order.includes("milestones")) {
+    safeSetItem(LAYOUT_MILESTONES_FULL_WIDTH_MIGRATION_KEY, "1");
+    return state;
+  }
+
+  const currentMilestones = isPlainObject(state.sizes) ? state.sizes.milestones : null;
+  const nextSizes = {
+    ...(isPlainObject(state.sizes) ? state.sizes : {}),
+    milestones: {
+      col: 12,
+      row: Number(currentMilestones && currentMilestones.row) || getDefaultPanelSpan("milestones").row
+    }
+  };
+
+  const migratedState = normalizeDashboardLayoutState({
+    order: state.order,
+    sizes: nextSizes
+  });
+
+  const changed =
+    !currentMilestones ||
+    Number(currentMilestones.col) !== Number(migratedState.sizes.milestones.col) ||
+    Number(currentMilestones.row) !== Number(migratedState.sizes.milestones.row);
+
+  if (changed) {
+    saveDashboardLayoutState(migratedState);
+  }
+
+  safeSetItem(LAYOUT_MILESTONES_FULL_WIDTH_MIGRATION_KEY, "1");
+  return migratedState;
+}
+
 function loadSavedDashboardLayoutState() {
   const stored = loadJSON(STORAGE.DASHBOARD_LAYOUT, null);
   if (!stored || typeof stored !== "object") {
     safeSetItem(LAYOUT_PROGRESS_POSITION_MIGRATION_KEY, "1");
     safeSetItem(LAYOUT_VALUE_FOLLOWUP_POSITION_MIGRATION_KEY, "1");
+    safeSetItem(LAYOUT_MILESTONES_FULL_WIDTH_MIGRATION_KEY, "1");
     return buildDefaultDashboardLayoutState();
   }
   const normalized = normalizeDashboardLayoutState(stored);
   const withProgressPlacement = migrateSavedLayoutProgressPlacement(normalized);
-  return migrateSavedLayoutValueFollowupPlacement(withProgressPlacement);
+  const withValueFollowupPlacement = migrateSavedLayoutValueFollowupPlacement(withProgressPlacement);
+  return migrateSavedLayoutMilestonesFullWidth(withValueFollowupPlacement);
 }
 
 function saveDashboardLayoutState(state) {
