@@ -301,6 +301,7 @@ const memoryGamePanel = document.querySelector(".memory-game");
 const LAYOUT_PROGRESS_POSITION_MIGRATION_KEY = "fcv_layout_progress_position_migration_v1";
 const LAYOUT_VALUE_FOLLOWUP_POSITION_MIGRATION_KEY = "fcv_layout_value_followup_position_migration_v1";
 const LAYOUT_MILESTONES_FULL_WIDTH_MIGRATION_KEY = "fcv_layout_milestones_full_width_migration_v1";
+const LAYOUT_VALUES_ABOVE_MEMORY_MIGRATION_KEY = "fcv_layout_values_above_memory_migration_v1";
 
 const DEFAULT_DASHBOARD_LAYOUT_SPANS = {
   spotlight: { col: 2, row: 2 },
@@ -1001,18 +1002,66 @@ function migrateSavedLayoutMilestonesFullWidth(state) {
   return migratedState;
 }
 
+function moveValuesAboveMemory(order) {
+  if (!Array.isArray(order)) {
+    return [];
+  }
+
+  const nextOrder = order.filter((id) => id !== "values");
+  const memoryIndex = nextOrder.indexOf("memory");
+  if (memoryIndex === -1) {
+    nextOrder.push("values");
+    return nextOrder;
+  }
+  nextOrder.splice(memoryIndex, 0, "values");
+  return nextOrder;
+}
+
+function migrateSavedLayoutValuesAboveMemory(state) {
+  const alreadyMigrated = safeGetItem(LAYOUT_VALUES_ABOVE_MEMORY_MIGRATION_KEY) === "1";
+  if (alreadyMigrated || !state || !Array.isArray(state.order)) {
+    return state;
+  }
+
+  const hasValues = state.order.includes("values");
+  const hasMemory = state.order.includes("memory");
+  if (!hasValues || !hasMemory) {
+    safeSetItem(LAYOUT_VALUES_ABOVE_MEMORY_MIGRATION_KEY, "1");
+    return state;
+  }
+
+  const valuesIndex = state.order.indexOf("values");
+  const memoryIndex = state.order.indexOf("memory");
+  if (valuesIndex < memoryIndex) {
+    safeSetItem(LAYOUT_VALUES_ABOVE_MEMORY_MIGRATION_KEY, "1");
+    return state;
+  }
+
+  const migratedOrder = moveValuesAboveMemory(state.order);
+  const migratedState = normalizeDashboardLayoutState({
+    order: migratedOrder,
+    sizes: state.sizes
+  });
+
+  saveDashboardLayoutState(migratedState);
+  safeSetItem(LAYOUT_VALUES_ABOVE_MEMORY_MIGRATION_KEY, "1");
+  return migratedState;
+}
+
 function loadSavedDashboardLayoutState() {
   const stored = loadJSON(STORAGE.DASHBOARD_LAYOUT, null);
   if (!stored || typeof stored !== "object") {
     safeSetItem(LAYOUT_PROGRESS_POSITION_MIGRATION_KEY, "1");
     safeSetItem(LAYOUT_VALUE_FOLLOWUP_POSITION_MIGRATION_KEY, "1");
     safeSetItem(LAYOUT_MILESTONES_FULL_WIDTH_MIGRATION_KEY, "1");
+    safeSetItem(LAYOUT_VALUES_ABOVE_MEMORY_MIGRATION_KEY, "1");
     return buildDefaultDashboardLayoutState();
   }
   const normalized = normalizeDashboardLayoutState(stored);
   const withProgressPlacement = migrateSavedLayoutProgressPlacement(normalized);
   const withValueFollowupPlacement = migrateSavedLayoutValueFollowupPlacement(withProgressPlacement);
-  return migrateSavedLayoutMilestonesFullWidth(withValueFollowupPlacement);
+  const withMilestonesFullWidth = migrateSavedLayoutMilestonesFullWidth(withValueFollowupPlacement);
+  return migrateSavedLayoutValuesAboveMemory(withMilestonesFullWidth);
 }
 
 function saveDashboardLayoutState(state) {
