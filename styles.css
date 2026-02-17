@@ -478,6 +478,15 @@ h3 {
   gap: 0.9rem;
 }
 
+.layout-controls-footer {
+  width: min(1160px, 94vw);
+  margin: 0 auto 2rem;
+}
+
+.layout-controls-footer .hero__layout-controls {
+  margin-top: 0;
+}
+
 .layout > .panel,
 .detail-layout > .panel {
   min-width: 0;
@@ -2185,6 +2194,11 @@ body.is-ready .other-value-link {
     gap: 0.72rem;
   }
 
+  .layout-controls-footer {
+    width: 95vw;
+    margin: 0 auto 1.2rem;
+  }
+
   .value-card__link {
     grid-template-columns: 38px 1fr;
     grid-template-areas:
@@ -2244,7 +2258,8 @@ body.is-ready .other-value-link {
 body.view-mode-desktop .hero,
 body.view-mode-desktop .layout,
 body.view-mode-desktop .detail-layout,
-body.view-mode-desktop .chore-chart-layout {
+body.view-mode-desktop .chore-chart-layout,
+body.view-mode-desktop .layout-controls-footer {
   width: min(1480px, 96vw) !important;
 }
 
@@ -2369,7 +2384,8 @@ body.view-mode-desktop .detail-layout {
   body.view-mode-desktop .hero,
   body.view-mode-desktop .layout,
   body.view-mode-desktop .detail-layout,
-  body.view-mode-desktop .chore-chart-layout {
+  body.view-mode-desktop .chore-chart-layout,
+  body.view-mode-desktop .layout-controls-footer {
     width: 95vw !important;
   }
 
@@ -2441,7 +2457,8 @@ body.view-mode-desktop .detail-layout {
 body.view-mode-mobile .hero,
 body.view-mode-mobile .layout,
 body.view-mode-mobile .detail-layout,
-body.view-mode-mobile .chore-chart-layout {
+body.view-mode-mobile .chore-chart-layout,
+body.view-mode-mobile .layout-controls-footer {
   width: min(460px, 95vw) !important;
 }
 

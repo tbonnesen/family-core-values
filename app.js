@@ -616,6 +616,10 @@ function parseSpanFromGridValue(value) {
 }
 
 function getGridColumnCount() {
+  if (document.body && (document.body.classList.contains("view-mode-mobile") || document.body.dataset.viewModeResolved === "mobile")) {
+    return 1;
+  }
+
   if (!dashboardLayout) {
     return 1;
   }
@@ -864,6 +868,22 @@ function applyDashboardLayoutState(rawState) {
       dashboardLayout.appendChild(panel);
     }
   });
+
+  const compactMode =
+    document.body && (document.body.classList.contains("view-mode-mobile") || document.body.dataset.viewModeResolved === "mobile");
+  if (compactMode) {
+    state.order.forEach((id) => {
+      const panel = panelById.get(id);
+      if (!panel) {
+        return;
+      }
+      panel.style.setProperty("grid-column", "span 1", "important");
+      panel.style.setProperty("grid-row", "auto", "important");
+      updatePanelSizeBadge(panel);
+    });
+    setPanelStaggerIndexes(".layout > .panel");
+    return state;
+  }
 
   const maxCols = getGridColumnCount();
   state.order.forEach((id) => {
@@ -1135,6 +1155,7 @@ function initDashboardLayoutEditor() {
   }
 
   window.addEventListener("resize", scheduleDashboardLayoutReflow);
+  window.addEventListener("fcv:view-mode-change", scheduleDashboardLayoutReflow);
   if (!layoutModeObserver && document.body && typeof MutationObserver === "function") {
     layoutModeObserver = new MutationObserver(() => {
       scheduleDashboardLayoutReflow();

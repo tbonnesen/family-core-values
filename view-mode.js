@@ -87,6 +87,14 @@
     document.body.dataset.viewModeResolved = resolvedMode;
     currentMode = nextMode;
     updateToggleStates(nextMode);
+    window.dispatchEvent(
+      new CustomEvent("fcv:view-mode-change", {
+        detail: {
+          mode: nextMode,
+          resolvedMode
+        }
+      })
+    );
   }
 
   function setMode(mode) {

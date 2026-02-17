@@ -26,12 +26,6 @@
         <p class="intro">
           Practice one value at a time with stories, choices, and reflections.
         </p>
-        <div class="hero__layout-controls" aria-label="Dashboard layout controls">
-          <button id="layout-edit-toggle" class="btn btn--small" type="button">Customize Layout</button>
-          <button id="layout-save" class="btn btn--small" type="button" disabled>Save Layout</button>
-          <button id="layout-reset" class="btn btn--small btn--danger" type="button">Reset Layout</button>
-          <p id="layout-status" class="hero__layout-status" aria-live="polite"></p>
-        </div>
       </div>
       <div class="hero__filter">
         <label class="hero__filter-label" for="dashboard-profile-filter">Dashboard Filter</label>
@@ -258,6 +252,15 @@
         <div id="profile-list" class="profile-list"></div>
       </section>
     </main>
+
+    <section class="layout-controls-footer" aria-label="Dashboard layout controls">
+      <div class="hero__layout-controls">
+        <button id="layout-edit-toggle" class="btn btn--small" type="button">Customize Layout</button>
+        <button id="layout-save" class="btn btn--small" type="button" disabled>Save Layout</button>
+        <button id="layout-reset" class="btn btn--small btn--danger" type="button">Reset Layout</button>
+        <p id="layout-status" class="hero__layout-status" aria-live="polite"></p>
+      </div>
+    </section>
 
     <template id="value-card-template">
       <article class="value-card">
