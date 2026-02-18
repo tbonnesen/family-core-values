@@ -37,6 +37,17 @@
       </div>
     </header>
 
+    <div id="onboarding-banner" class="onboarding-banner" hidden>
+      <div class="onboarding-banner__inner">
+        <div class="onboarding-banner__icon" aria-hidden="true">👨‍👩‍👧‍👦</div>
+        <div class="onboarding-banner__body">
+          <strong class="onboarding-banner__heading">Welcome to Family Core Values!</strong>
+          <p class="onboarding-banner__text">Get started by adding your children in the <strong>Child Profiles</strong> panel below, then assign chores and values to each child.</p>
+        </div>
+        <button class="onboarding-banner__dismiss" type="button" aria-label="Dismiss welcome banner">✕</button>
+      </div>
+    </div>
+
     <main class="layout">
       <section class="panel panel--spotlight" aria-labelledby="spotlight-title">
         <h2 id="spotlight-title">Today's Spotlight</h2>
@@ -78,30 +89,36 @@
 
       <section class="panel panel--memory" aria-labelledby="memory-title">
         <h2 id="memory-title">Memory Verse Mode</h2>
-        <p id="memory-meta" class="panel-meta"></p>
-        <p id="memory-value" class="memory-value"></p>
-        <p id="memory-ref" class="memory-ref"></p>
-        <p id="memory-text" class="memory-text memory-text--hidden"></p>
-        <div class="memory-actions">
-          <button id="memory-toggle" class="btn btn--small" type="button">Reveal Verse</button>
-          <button id="memory-prompt" class="btn btn--small btn--alt" type="button">Practice Prompt</button>
-        </div>
-        <p id="memory-practice" class="memory-practice"></p>
-        <div class="memory-game">
-          <div class="memory-game__header">
-            <h3>Verse Memory Game</h3>
-            <select id="memory-game-type" aria-label="Verse game type">
-              <option value="missing">Missing Word</option>
-              <option value="next">Next Word Quiz</option>
-            </select>
+        <div class="memory-inner">
+          <div class="memory-half memory-half--verse">
+            <p id="memory-meta" class="panel-meta"></p>
+            <p id="memory-value" class="memory-value"></p>
+            <p id="memory-ref" class="memory-ref"></p>
+            <p id="memory-text" class="memory-text memory-text--hidden"></p>
+            <div class="memory-actions">
+              <button id="memory-toggle" class="btn btn--small" type="button">Reveal Verse</button>
+              <button id="memory-prompt" class="btn btn--small btn--alt" type="button">Practice Prompt</button>
+            </div>
+            <p id="memory-practice" class="memory-practice"></p>
           </div>
-          <p id="memory-game-question" class="memory-game__question"></p>
-          <div id="memory-game-options" class="memory-game-options"></div>
-          <div class="memory-game-actions">
-            <button id="memory-game-new" class="btn btn--small" type="button">New Round</button>
+          <div class="memory-half memory-half--game">
+            <div class="memory-game">
+              <div class="memory-game__header">
+                <h3>Verse Memory Game</h3>
+                <select id="memory-game-type" aria-label="Verse game type">
+                  <option value="missing">Missing Word</option>
+                  <option value="next">Next Word Quiz</option>
+                </select>
+              </div>
+              <p id="memory-game-question" class="memory-game__question"></p>
+              <div id="memory-game-options" class="memory-game-options"></div>
+              <div class="memory-game-actions">
+                <button id="memory-game-new" class="btn btn--small" type="button">New Round</button>
+              </div>
+              <p id="memory-game-result" class="memory-game__result"></p>
+              <p id="memory-game-score" class="memory-game__score"></p>
+            </div>
           </div>
-          <p id="memory-game-result" class="memory-game__result"></p>
-          <p id="memory-game-score" class="memory-game__score"></p>
         </div>
       </section>
 
@@ -111,12 +128,6 @@
         <div id="choices" class="choices"></div>
         <p id="scenario-result" class="scenario-result" aria-live="polite"></p>
         <button id="next-scenario" class="btn">New Scenario</button>
-      </section>
-
-      <section class="panel panel--chorechart" aria-labelledby="chorechart-title">
-        <h2 id="chorechart-title">Chore Chart</h2>
-        <p class="spotlight-message">Open a full chart that groups assigned chores by child profile.</p>
-        <a class="btn chore-chart-link" href="chore-chart.html">Open Chore Chart</a>
       </section>
 
       <section class="panel panel--value-suggestions" aria-labelledby="value-suggestions-title">
@@ -139,6 +150,7 @@
 
       <section class="panel panel--chores" aria-labelledby="chores-title">
         <h2 id="chores-title">Chore-To-Value Mapping</h2>
+        <a class="panel-link chore-chart-link" href="chore-chart.html">View Full Chore Chart →</a>
         <p class="hint">Connect daily chores to a core value.</p>
         <p id="chore-summary" class="panel-meta"></p>
         <form id="chore-form" class="chore-form">

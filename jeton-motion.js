@@ -78,9 +78,14 @@
         hero.style.setProperty("--jeton-my", (y * 10).toFixed(2) + "px");
       });
 
-      hero.addEventListener("pointerleave", () => {
+        hero.addEventListener("pointerleave", () => {
+        // Animate back to center smoothly via a short CSS transition
+        hero.style.transition = "transform 400ms cubic-bezier(0.22, 0.78, 0.24, 1)";
         hero.style.setProperty("--jeton-mx", "0px");
         hero.style.setProperty("--jeton-my", "0px");
+        hero.addEventListener("transitionend", () => {
+          hero.style.transition = "";
+        }, { once: true });
       });
     });
   }
@@ -120,7 +125,6 @@
     const selectors = [
       ".panel--spotlight",
       ".panel--weekly",
-      ".panel--chorechart",
       ".panel--progress",
       ".chore-chart-overview",
       ".chore-chart-manage"
@@ -150,10 +154,26 @@
     });
   }
 
+  function setupKeyboardNavDetection() {
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Tab") {
+        document.body.classList.add("jeton-keyboard-nav");
+      }
+    });
+    document.addEventListener("mousedown", () => {
+      document.body.classList.remove("jeton-keyboard-nav");
+    });
+    document.addEventListener("pointerdown", (e) => {
+      if (e.pointerType !== "mouse") return;
+      document.body.classList.remove("jeton-keyboard-nav");
+    });
+  }
+
   function init() {
     document.body.classList.add("jeton-motion-ready");
     refreshMotionBindings();
     setupHeroParallax();
+    setupKeyboardNavDetection();
 
     if (typeof MutationObserver === "function") {
       const observer = new MutationObserver(() => {

@@ -295,6 +295,8 @@ const layoutSaveBtn = document.getElementById("layout-save");
 const layoutResetBtn = document.getElementById("layout-reset");
 const layoutStatus = document.getElementById("layout-status");
 
+const onboardingBanner = document.getElementById("onboarding-banner");
+
 const panelParent = document.querySelector(".panel--parent");
 const panelChallenge = document.querySelector(".panel--challenge");
 const memoryGamePanel = document.querySelector(".memory-game");
@@ -308,17 +310,16 @@ const DEFAULT_DASHBOARD_LAYOUT_SPANS = {
   spotlight: { col: 2, row: 2 },
   progress: { col: 2, row: 2 },
   weekly: { col: 3, row: 2 },
-  chorechart: { col: 3, row: 2 },
   "weekly-plan": { col: 4, row: 2 },
   "value-suggestions": { col: 4, row: 3 },
-  milestones: { col: 12, row: 3 },
+  milestones: { col: 8, row: 3 },
   memory: { col: 12, row: 2 },
   values: { col: 8, row: 3 },
   challenge: { col: 4, row: 3 },
   chores: { col: 6, row: 3 },
   reflection: { col: 3, row: 3 },
   parent: { col: 3, row: 3 },
-  approvals: { col: 6, row: 3 },
+  approvals: { col: 4, row: 3 },
   profiles: { col: 12, row: 2 }
 };
 const FALLBACK_PANEL_SPAN = { col: 4, row: 2 };
@@ -926,7 +927,7 @@ function moveValueFollowupPanelsBelowChallenge(order) {
     return [];
   }
 
-  const followupIds = ["chorechart", "value-suggestions", "milestones"];
+  const followupIds = ["value-suggestions", "milestones"];
   const presentFollowups = followupIds.filter((id) => order.includes(id));
   if (!presentFollowups.length) {
     return order.slice();
@@ -980,7 +981,7 @@ function migrateSavedLayoutMilestonesFullWidth(state) {
   const nextSizes = {
     ...(isPlainObject(state.sizes) ? state.sizes : {}),
     milestones: {
-      col: 12,
+      col: getDefaultPanelSpan("milestones").col,
       row: Number(currentMilestones && currentMilestones.row) || getDefaultPanelSpan("milestones").row
     }
   };
@@ -1970,6 +1971,7 @@ function removeActiveProfile() {
   saveProfileDataMaps();
   saveChoreMappings();
   setActiveProfile(fallbackProfile.id);
+  updateOnboardingBanner();
 }
 
 function setActiveProfile(profileId, options = {}) {
@@ -2159,6 +2161,7 @@ function initProfileControls() {
     profileNameInput.value = "";
     profileIconInput.value = PROFILE_ICON_OPTIONS[0].id;
     setActiveProfile(profile.id);
+    updateOnboardingBanner();
   });
 
   profileSelect.addEventListener("change", () => {
@@ -2988,8 +2991,8 @@ function renderChoreMappings() {
 
   if (!activeChores.length) {
     const empty = document.createElement("li");
-    empty.className = "chore-empty";
-    empty.textContent = `${activeProfile.name} has no assigned chores yet. Add one above.`;
+    empty.className = "chore-empty jeton-empty-state";
+    empty.textContent = `${activeProfile.name} has no chores yet. Add one above.`;
     choreList.appendChild(empty);
     renderChoreSummary();
     return;
@@ -3046,6 +3049,17 @@ function renderChoreMappings() {
     choreList.appendChild(item);
   });
 
+  // Animate first item if flagged by a just-submitted form
+  if (choreList.dataset.animateFirst) {
+    delete choreList.dataset.animateFirst;
+    const firstItem = choreList.querySelector(".chore-item");
+    if (firstItem) {
+      firstItem.classList.remove("jeton-item-enter");
+      void firstItem.offsetWidth; // force reflow to restart animation
+      firstItem.classList.add("jeton-item-enter");
+    }
+  }
+
   renderChoreSummary();
 }
 
@@ -3080,9 +3094,11 @@ function initChoreMapping() {
     });
 
     saveChoreMappings();
+    choreList.dataset.animateFirst = "1";
     renderChoreMappings();
     renderParentDashboard();
     choreInput.value = "";
+    updateOnboardingBanner();
   });
 
   choreList.addEventListener("click", (event) => {
@@ -3093,10 +3109,22 @@ function initChoreMapping() {
       if (!activeProfile || !id) {
         return;
       }
-      requestChoreApprovalForProfile(activeProfile.id, id);
-      renderChoreMappings();
-      renderParentApprovalQueue();
-      renderParentDashboard();
+      // Flash the chore item green before re-rendering
+      const choreItem = completeBtn.closest(".chore-item");
+      if (choreItem) {
+        choreItem.classList.add("jeton-complete-flash");
+        choreItem.addEventListener("animationend", () => {
+          requestChoreApprovalForProfile(activeProfile.id, id);
+          renderChoreMappings();
+          renderParentApprovalQueue();
+          renderParentDashboard();
+        }, { once: true });
+      } else {
+        requestChoreApprovalForProfile(activeProfile.id, id);
+        renderChoreMappings();
+        renderParentApprovalQueue();
+        renderParentDashboard();
+      }
       return;
     }
 
@@ -3259,7 +3287,7 @@ function renderWeeklyPlan() {
 
   if (!plan.length) {
     const empty = document.createElement("li");
-    empty.className = "chore-empty";
+    empty.className = "chore-empty jeton-empty-state";
     empty.textContent = "No plan steps yet. Add one above.";
     weeklyPlanList.appendChild(empty);
     return;
@@ -3300,6 +3328,17 @@ function renderWeeklyPlan() {
     item.appendChild(removeBtn);
     weeklyPlanList.appendChild(item);
   });
+
+  // Animate first item if flagged by a just-submitted form
+  if (weeklyPlanList.dataset.animateFirst) {
+    delete weeklyPlanList.dataset.animateFirst;
+    const firstItem = weeklyPlanList.querySelector(".weekly-plan-item");
+    if (firstItem) {
+      firstItem.classList.remove("jeton-item-enter");
+      void firstItem.offsetWidth;
+      firstItem.classList.add("jeton-item-enter");
+    }
+  }
 }
 
 function initWeeklyPlanControls() {
@@ -3332,6 +3371,7 @@ function initWeeklyPlanControls() {
     });
     saveJSON(STORAGE.PROFILE_WEEKLY_PLANS, profileWeeklyPlanMap);
     weeklyPlanInput.value = "";
+    weeklyPlanList.dataset.animateFirst = "1";
     renderWeeklyPlan();
   });
 
@@ -3822,11 +3862,36 @@ function initParentApprovalWorkflow() {
 
 function loadReflections() {
   const reflections = getActiveReflections();
+  const hadItems = reflectionList.childElementCount > 0;
   reflectionList.innerHTML = "";
 
-  reflections.slice(0, 8).forEach((entry) => {
+  if (!reflections.length) {
+    const empty = document.createElement("li");
+    empty.className = "jeton-empty-state";
+    empty.setAttribute("aria-live", "polite");
+    empty.setAttribute("data-empty-icon", "✍️");
+    empty.style.setProperty("--empty-icon", '"✍️"');
+    empty.textContent = "No reflections yet. Share one above.";
+    reflectionList.appendChild(empty);
+    return;
+  }
+
+  reflections.slice(0, 8).forEach((entry, index) => {
     const item = document.createElement("li");
-    item.textContent = `${entry.text} (${entry.date})`;
+    item.className = "reflection-item";
+    if (!hadItems && index === 0) {
+      item.classList.add("jeton-item-enter");
+    } else if (index === 0 && hadItems) {
+      item.classList.add("jeton-item-enter");
+    }
+    const textEl = document.createElement("span");
+    textEl.className = "reflection-text";
+    textEl.textContent = entry.text;
+    const dateEl = document.createElement("span");
+    dateEl.className = "reflection-date";
+    dateEl.textContent = entry.date;
+    item.appendChild(textEl);
+    item.appendChild(dateEl);
     reflectionList.appendChild(item);
   });
 }
@@ -3919,6 +3984,25 @@ if (nextScenarioBtn) {
   nextScenarioBtn.addEventListener("click", loadScenario);
 }
 
+function updateOnboardingBanner() {
+  if (!onboardingBanner) return;
+  const isDefaultState =
+    profiles.length === 1 &&
+    profiles[0].name === "Child 1" &&
+    choreMappings.length === 0;
+  onboardingBanner.hidden = !isDefaultState;
+}
+
+function initOnboardingBanner() {
+  if (!onboardingBanner) return;
+  const dismissBtn = onboardingBanner.querySelector(".onboarding-banner__dismiss");
+  if (dismissBtn) {
+    dismissBtn.addEventListener("click", () => {
+      onboardingBanner.hidden = true;
+    });
+  }
+}
+
 function startDashboardApp() {
   initValueNavigationIntentCapture();
   setPanelStaggerIndexes(".layout > .panel");
@@ -3945,6 +4029,8 @@ function startDashboardApp() {
   renderProfileDrivenPanels();
   initDashboardLayoutEditor();
   loadReflections();
+  initOnboardingBanner();
+  updateOnboardingBanner();
   markPageReady();
 }
 
