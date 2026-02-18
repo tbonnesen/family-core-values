@@ -176,6 +176,28 @@ h3 {
 .panel {
   padding: 1.45rem !important;
   transform-style: preserve-3d;
+  overflow: hidden !important;
+}
+
+/* Challenge panel — keep flex layout intact so content scrolls inside */
+.panel--challenge {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+.panel--challenge .choices {
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(124, 106, 245, 0.35) transparent !important;
+}
+
+.panel--challenge .choices::-webkit-scrollbar {
+  width: 4px !important;
+}
+
+.panel--challenge .choices::-webkit-scrollbar-thumb {
+  background: rgba(124, 106, 245, 0.4) !important;
+  border-radius: 99px !important;
 }
 
 .value-card__link {
