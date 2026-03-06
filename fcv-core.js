@@ -1,5 +1,35 @@
 (function initFcvCore(global) {
   const PROFILE_AGES_DEFAULT = [1, 2, 3, 4, 5, 6, 7];
+  const PROFILE_ICON_OPTIONS = [
+    { id: "rocket", label: "Rocket", glyph: "\u{1F680}" },
+    { id: "star", label: "Star", glyph: "\u2B50" },
+    { id: "lion", label: "Lion", glyph: "\u{1F981}" },
+    { id: "fox", label: "Fox", glyph: "\u{1F98A}" },
+    { id: "dino", label: "Dinosaur", glyph: "\u{1F996}" },
+    { id: "soccer", label: "Soccer", glyph: "\u26BD" },
+    { id: "paint", label: "Paint", glyph: "\u{1F3A8}" },
+    { id: "book", label: "Book", glyph: "\u{1F4DA}" },
+    { id: "music", label: "Music", glyph: "\u{1F3B5}" },
+    { id: "sparkles", label: "Sparkles", glyph: "\u2728" },
+    { id: "crown", label: "Crown", glyph: "\u{1F451}" },
+    { id: "robot", label: "Robot", glyph: "\u{1F916}" },
+    { id: "plane", label: "Plane", glyph: "\u2708" },
+    { id: "puzzle", label: "Puzzle", glyph: "\u{1F9E9}" },
+    { id: "gamepad", label: "Gamepad", glyph: "\u{1F3AE}" },
+    { id: "globe", label: "Globe", glyph: "\u{1F30D}" },
+    { id: "camera", label: "Camera", glyph: "\u{1F4F7}" },
+    { id: "heart", label: "Heart", glyph: "\u{1F496}" },
+    { id: "rainbow", label: "Rainbow", glyph: "\u{1F308}" },
+    { id: "car", label: "Car", glyph: "\u{1F697}" },
+    { id: "guitar", label: "Guitar", glyph: "\u{1F3B8}" },
+    { id: "planet", label: "Planet", glyph: "\u{1FA90}" },
+    { id: "butterfly", label: "Butterfly", glyph: "\u{1F98B}" },
+    { id: "dragon", label: "Dragon", glyph: "\u{1F409}" }
+  ];
+  const PROFILE_ICON_GLYPHS = PROFILE_ICON_OPTIONS.reduce((acc, option) => {
+    acc[option.id] = option.glyph;
+    return acc;
+  }, {});
   const STORAGE = {
     PROGRESS: "fcv_progress_v1",
     REFLECTION: "fcv_reflections_v1",
@@ -44,6 +74,7 @@
   let isApplyingRemoteState = false;
   let lastRemoteUpdatedAt = "";
   let lastRemoteStateSignature = "";
+  let lastRemoteState = {};
   let syncPollTimer = null;
   let syncBootstrapTimer = null;
   let syncBootstrapInFlight = false;
@@ -115,6 +146,21 @@
 
   function hasAnySharedState(state) {
     return Object.keys(state).length > 0;
+  }
+
+  function isPlainObject(value) {
+    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function sanitizeSharedState(state) {
+    const source = isPlainObject(state) ? state : {};
+    const next = {};
+    Object.keys(source).forEach((key) => {
+      if (typeof source[key] === "string") {
+        next[key] = source[key];
+      }
+    });
+    return next;
   }
 
   function safeGetItem(key) {
@@ -211,6 +257,66 @@
 
   function getValues() {
     return Array.isArray(global.CORE_VALUES) ? global.CORE_VALUES : [];
+  }
+
+  function mergeSharedState(baseState, localState, remoteState) {
+    const base = sanitizeSharedState(baseState);
+    const local = sanitizeSharedState(localState);
+    const remote = sanitizeSharedState(remoteState);
+    const keys = unique([...Object.keys(base), ...Object.keys(local), ...Object.keys(remote)]);
+    const merged = {};
+
+    keys.forEach((key) => {
+      const baseHas = typeof base[key] === "string";
+      const localHas = typeof local[key] === "string";
+      const remoteHas = typeof remote[key] === "string";
+      const baseValue = baseHas ? base[key] : undefined;
+      const localValue = localHas ? local[key] : undefined;
+      const remoteValue = remoteHas ? remote[key] : undefined;
+
+      if (localValue === remoteValue) {
+        if (localHas) {
+          merged[key] = localValue;
+        }
+        return;
+      }
+
+      if (baseHas && localValue === baseValue) {
+        if (remoteHas) {
+          merged[key] = remoteValue;
+        }
+        return;
+      }
+
+      if (baseHas && remoteValue === baseValue) {
+        if (localHas) {
+          merged[key] = localValue;
+        }
+        return;
+      }
+
+      if (!baseHas && !remoteHas) {
+        if (localHas) {
+          merged[key] = localValue;
+        }
+        return;
+      }
+
+      if (!baseHas && !localHas) {
+        if (remoteHas) {
+          merged[key] = remoteValue;
+        }
+        return;
+      }
+
+      if (localHas) {
+        merged[key] = localValue;
+      } else if (remoteHas) {
+        merged[key] = remoteValue;
+      }
+    });
+
+    return merged;
   }
 
   function getYearWeekIndex(date = new Date()) {
@@ -343,14 +449,53 @@
     return normalized.length ? normalized : mapDefaults();
   }
 
+  function getDashboardMilestoneProfile(profiles, filterProfileId, profileAges = PROFILE_AGES_DEFAULT) {
+    const safeProfiles = Array.isArray(profiles) ? profiles : [];
+    const selectedProfile =
+      filterProfileId && filterProfileId !== "all"
+        ? safeProfiles.find((profile) => profile && profile.id === filterProfileId) || null
+        : null;
+
+    if (selectedProfile) {
+      return {
+        kind: "profile",
+        profile: selectedProfile
+      };
+    }
+
+    return {
+      kind: "family",
+      profile: {
+        id: "family-view",
+        name: "Family View",
+        ages: (Array.isArray(profileAges) && profileAges.length ? profileAges : PROFILE_AGES_DEFAULT).slice()
+      }
+    };
+  }
+
+  function shouldShowOnboardingBanner(profiles, dismissed = false) {
+    if (dismissed) {
+      return false;
+    }
+
+    if (!Array.isArray(profiles) || !profiles.length) {
+      return true;
+    }
+
+    const [firstProfile] = profiles;
+    const firstName = typeof firstProfile?.name === "string" ? firstProfile.name.trim() : "";
+    return profiles.length === 1 && firstName === "Child 1";
+  }
+
   function applySharedStateFromRemote(remoteState) {
     if (!remoteState || typeof remoteState !== "object") {
       return;
     }
+    const safeRemoteState = sanitizeSharedState(remoteState);
     isApplyingRemoteState = true;
     try {
       SHARED_SYNC_KEYS.forEach((key) => {
-        const value = remoteState[key];
+        const value = safeRemoteState[key];
         if (typeof value === "string") {
           rawSetItem(key, value);
         } else {
@@ -367,9 +512,12 @@
       return;
     }
 
+    const localState = getCurrentSharedState();
+    const localStateSignature = JSON.stringify(localState);
     const payload = {
-      state: getCurrentSharedState(),
-      updatedAt: new Date().toISOString()
+      state: localState,
+      updatedAt: new Date().toISOString(),
+      baseState: lastRemoteState
     };
 
     try {
@@ -385,8 +533,17 @@
       }
 
       const body = await response.json().catch(() => null);
+      if (body && isPlainObject(body.state)) {
+        applySharedStateFromRemote(body.state);
+        lastRemoteState = sanitizeSharedState(body.state);
+        lastRemoteStateSignature = JSON.stringify(lastRemoteState);
+        if (lastRemoteStateSignature !== localStateSignature) {
+          global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: body.updatedAt || "" } }));
+        }
+      }
       if (body && typeof body.updatedAt === "string") {
         lastRemoteUpdatedAt = body.updatedAt;
+        touchLocalSharedUpdatedAt(body.updatedAt);
       }
     } catch {
       // Keep local state authoritative if the shared API is temporarily unavailable.
@@ -455,6 +612,7 @@
       if ((localHasState && localUpdatedAtMs && localUpdatedAtMs > remoteUpdatedAtMs) || preferLocalByHeuristic) {
         // Local is newer: keep local authoritative so deletions stay deleted.
         applySharedStateFromRemote(localState);
+        lastRemoteState = sanitizeSharedState(localState);
         lastRemoteUpdatedAt = remoteUpdatedAt;
         lastRemoteStateSignature = JSON.stringify(localState);
         global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: lastRemoteUpdatedAt } }));
@@ -463,6 +621,7 @@
       }
 
       applySharedStateFromRemote(remoteState);
+      lastRemoteState = sanitizeSharedState(remoteState);
       lastRemoteUpdatedAt = remoteUpdatedAt;
       lastRemoteStateSignature = remoteStateSignature;
       global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: lastRemoteUpdatedAt } }));
@@ -529,6 +688,7 @@
       const remoteState = payload.state && typeof payload.state === "object" ? payload.state : {};
       lastRemoteUpdatedAt = typeof payload.updatedAt === "string" ? payload.updatedAt : "";
       lastRemoteStateSignature = JSON.stringify(remoteState);
+      lastRemoteState = sanitizeSharedState(remoteState);
       const localUpdatedAtMs = toEpochMs(getLocalSharedUpdatedAt());
       const remoteUpdatedAtMs = toEpochMs(lastRemoteUpdatedAt);
       const localLooksNewerByTimestamp = hasAnySharedState(localBefore) && localUpdatedAtMs && localUpdatedAtMs > remoteUpdatedAtMs;
@@ -541,6 +701,7 @@
       if (localLooksNewer) {
         // Local is newer at bootstrap: publish local state as source of truth.
         applySharedStateFromRemote(localBefore);
+        lastRemoteState = sanitizeSharedState(localBefore);
         lastRemoteStateSignature = JSON.stringify(localBefore);
         global.dispatchEvent(new CustomEvent("fcv:remote-update", { detail: { updatedAt: lastRemoteUpdatedAt } }));
         scheduleSharedStatePush(0);
@@ -589,6 +750,8 @@
     ...(global.FCV || {}),
     STORAGE,
     PROFILE_AGES_DEFAULT,
+    PROFILE_ICON_OPTIONS,
+    PROFILE_ICON_GLYPHS,
     safeGetItem,
     safeSetItem,
     safeRemoveItem,
@@ -606,6 +769,10 @@
     getValueToneClass,
     normalizeProfiles,
     normalizeChoreMappings,
+    mergeSharedState,
+    sanitizeSharedState,
+    getDashboardMilestoneProfile,
+    shouldShowOnboardingBanner,
     ready,
     refreshSharedStateFromServer,
     pushSharedStateToServer

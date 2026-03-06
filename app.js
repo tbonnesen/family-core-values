@@ -3,32 +3,10 @@ const values = typeof fcv.getValues === "function" ? fcv.getValues() : Array.isA
 
 const PROFILE_AGES =
   Array.isArray(fcv.PROFILE_AGES_DEFAULT) && fcv.PROFILE_AGES_DEFAULT.length ? fcv.PROFILE_AGES_DEFAULT : [1, 2, 3, 4, 5, 6, 7];
-const PROFILE_ICON_OPTIONS = [
-  { id: "rocket", label: "Rocket", glyph: "\u{1F680}" },
-  { id: "star", label: "Star", glyph: "\u2B50" },
-  { id: "lion", label: "Lion", glyph: "\u{1F981}" },
-  { id: "fox", label: "Fox", glyph: "\u{1F98A}" },
-  { id: "dino", label: "Dinosaur", glyph: "\u{1F996}" },
-  { id: "soccer", label: "Soccer", glyph: "\u26BD" },
-  { id: "paint", label: "Paint", glyph: "\u{1F3A8}" },
-  { id: "book", label: "Book", glyph: "\u{1F4DA}" },
-  { id: "music", label: "Music", glyph: "\u{1F3B5}" },
-  { id: "sparkles", label: "Sparkles", glyph: "\u2728" },
-  { id: "crown", label: "Crown", glyph: "\u{1F451}" },
-  { id: "robot", label: "Robot", glyph: "\u{1F916}" },
-  { id: "plane", label: "Plane", glyph: "\u2708" },
-  { id: "puzzle", label: "Puzzle", glyph: "\u{1F9E9}" },
-  { id: "gamepad", label: "Gamepad", glyph: "\u{1F3AE}" },
-  { id: "globe", label: "Globe", glyph: "\u{1F30D}" },
-  { id: "camera", label: "Camera", glyph: "\u{1F4F7}" },
-  { id: "heart", label: "Heart", glyph: "\u{1F496}" },
-  { id: "rainbow", label: "Rainbow", glyph: "\u{1F308}" },
-  { id: "car", label: "Car", glyph: "\u{1F697}" },
-  { id: "guitar", label: "Guitar", glyph: "\u{1F3B8}" },
-  { id: "planet", label: "Planet", glyph: "\u{1FA90}" },
-  { id: "butterfly", label: "Butterfly", glyph: "\u{1F98B}" },
-  { id: "dragon", label: "Dragon", glyph: "\u{1F409}" }
-];
+const PROFILE_ICON_OPTIONS =
+  Array.isArray(fcv.PROFILE_ICON_OPTIONS) && fcv.PROFILE_ICON_OPTIONS.length
+    ? fcv.PROFILE_ICON_OPTIONS
+    : [{ id: "star", label: "Star", glyph: "\u2B50" }];
 
 const scenarios = [
   {
@@ -305,6 +283,7 @@ const LAYOUT_VALUE_FOLLOWUP_POSITION_MIGRATION_KEY = "fcv_layout_value_followup_
 const LAYOUT_MILESTONES_FULL_WIDTH_MIGRATION_KEY = "fcv_layout_milestones_full_width_migration_v1";
 const LAYOUT_VALUES_ABOVE_MEMORY_MIGRATION_KEY = "fcv_layout_values_above_memory_migration_v1";
 const LAYOUT_WEEKLY_PLAN_COMPACT_HEIGHT_MIGRATION_KEY = "fcv_layout_weekly_plan_compact_height_migration_v1";
+const ONBOARDING_DISMISSED_KEY = "fcv_onboarding_dismissed_v1";
 
 const DEFAULT_DASHBOARD_LAYOUT_SPANS = {
   spotlight: { col: 2, row: 2 },
@@ -1755,17 +1734,17 @@ function applyDashboardAgeFilter() {
 }
 
 function setDashboardFilterProfile(profileId, options = {}) {
-  const { syncActiveProfile = true, refreshScenario = false } = options;
+  const { refreshScenario = false } = options;
   dashboardFilterProfileId = resolveDashboardFilterProfileId(profileId);
   persistDashboardFilterProfileId();
   renderDashboardFilterOptions();
-
-  if (syncActiveProfile && dashboardFilterProfileId !== "all") {
-    setActiveProfile(dashboardFilterProfileId, { refreshScenario });
-    return;
-  }
-
   applyDashboardAgeFilter();
+  renderGoalMilestones();
+  renderParentDashboard();
+
+  if (refreshScenario) {
+    loadScenario();
+  }
 }
 
 function getDefaultParentProfile() {
@@ -2240,10 +2219,7 @@ function initDashboardFilterControls() {
 
   if (!dashboardFilterControlsBound) {
     dashboardProfileFilter.addEventListener("change", () => {
-      setDashboardFilterProfile(dashboardProfileFilter.value, {
-        syncActiveProfile: true,
-        refreshScenario: false
-      });
+      setDashboardFilterProfile(dashboardProfileFilter.value, { refreshScenario: false });
     });
     dashboardFilterControlsBound = true;
   }
@@ -3625,7 +3601,14 @@ function renderGoalMilestones() {
     return;
   }
 
-  const activeProfile = getActiveProfile();
+  const milestoneContext =
+    typeof fcv.getDashboardMilestoneProfile === "function"
+      ? fcv.getDashboardMilestoneProfile(profiles, dashboardFilterProfileId, PROFILE_AGES)
+      : {
+          kind: "profile",
+          profile: getActiveProfile()
+        };
+  const activeProfile = milestoneContext && milestoneContext.profile ? milestoneContext.profile : null;
   milestoneList.innerHTML = "";
 
   if (!activeProfile) {
@@ -3635,10 +3618,13 @@ function renderGoalMilestones() {
 
   populateMilestoneValueFilter();
   const entries = getMilestoneEntriesForProfile(activeProfile, activeMilestoneValueFilter);
-  const completion = profileGoalMilestoneMap[activeProfile.id] || {};
+  const completion = milestoneContext.kind === "profile" ? profileGoalMilestoneMap[activeProfile.id] || {} : {};
   const completedCount = entries.filter((entry) => Boolean(completion[entry.id])).length;
   const ageLabel = activeProfile.ages && activeProfile.ages.length ? activeProfile.ages.join(", ") : "none";
-  milestoneSummary.textContent = `${activeProfile.name} (ages ${ageLabel}) \u2022 ${completedCount}/${entries.length} milestones reached`;
+  milestoneSummary.textContent =
+    milestoneContext.kind === "profile"
+      ? `${activeProfile.name} (ages ${ageLabel}) \u2022 ${completedCount}/${entries.length} milestones reached`
+      : `${activeProfile.name} (ages ${ageLabel}) \u2022 showing all milestone examples`;
 
   if (!entries.length) {
     const empty = document.createElement("p");
@@ -3985,19 +3971,25 @@ if (nextScenarioBtn) {
 }
 
 function updateOnboardingBanner() {
-  if (!onboardingBanner) return;
-  const isDefaultState =
-    profiles.length === 1 &&
-    profiles[0].name === "Child 1" &&
-    choreMappings.length === 0;
-  onboardingBanner.hidden = !isDefaultState;
+  if (!onboardingBanner) {
+    return;
+  }
+  const dismissed = safeGetItem(ONBOARDING_DISMISSED_KEY) === "1";
+  const shouldShow =
+    typeof fcv.shouldShowOnboardingBanner === "function"
+      ? fcv.shouldShowOnboardingBanner(profiles, dismissed)
+      : !dismissed && profiles.length === 1 && profiles[0]?.name === "Child 1";
+  onboardingBanner.hidden = !shouldShow;
 }
 
 function initOnboardingBanner() {
-  if (!onboardingBanner) return;
+  if (!onboardingBanner) {
+    return;
+  }
   const dismissBtn = onboardingBanner.querySelector(".onboarding-banner__dismiss");
   if (dismissBtn) {
     dismissBtn.addEventListener("click", () => {
+      safeSetItem(ONBOARDING_DISMISSED_KEY, "1");
       onboardingBanner.hidden = true;
     });
   }

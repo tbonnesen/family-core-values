@@ -21,6 +21,81 @@ const MIME_TYPES = {
   ".txt": "text/plain; charset=utf-8"
 };
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function sanitizeSharedState(state) {
+  const source = isPlainObject(state) ? state : {};
+  const next = {};
+  Object.keys(source).forEach((key) => {
+    if (typeof source[key] === "string") {
+      next[key] = source[key];
+    }
+  });
+  return next;
+}
+
+function mergeSharedState(baseState, localState, remoteState) {
+  const base = sanitizeSharedState(baseState);
+  const local = sanitizeSharedState(localState);
+  const remote = sanitizeSharedState(remoteState);
+  const keys = new Set([...Object.keys(base), ...Object.keys(local), ...Object.keys(remote)]);
+  const merged = {};
+
+  keys.forEach((key) => {
+    const baseHas = typeof base[key] === "string";
+    const localHas = typeof local[key] === "string";
+    const remoteHas = typeof remote[key] === "string";
+    const baseValue = baseHas ? base[key] : undefined;
+    const localValue = localHas ? local[key] : undefined;
+    const remoteValue = remoteHas ? remote[key] : undefined;
+
+    if (localValue === remoteValue) {
+      if (localHas) {
+        merged[key] = localValue;
+      }
+      return;
+    }
+
+    if (baseHas && localValue === baseValue) {
+      if (remoteHas) {
+        merged[key] = remoteValue;
+      }
+      return;
+    }
+
+    if (baseHas && remoteValue === baseValue) {
+      if (localHas) {
+        merged[key] = localValue;
+      }
+      return;
+    }
+
+    if (!baseHas && !remoteHas) {
+      if (localHas) {
+        merged[key] = localValue;
+      }
+      return;
+    }
+
+    if (!baseHas && !localHas) {
+      if (remoteHas) {
+        merged[key] = remoteValue;
+      }
+      return;
+    }
+
+    if (localHas) {
+      merged[key] = localValue;
+    } else if (remoteHas) {
+      merged[key] = remoteValue;
+    }
+  });
+
+  return merged;
+}
+
 function sendJson(res, statusCode, payload) {
   const body = JSON.stringify(payload);
   res.writeHead(statusCode, {
@@ -38,7 +113,7 @@ function readStateFile() {
   try {
     const raw = fs.readFileSync(STATE_FILE, "utf8");
     const parsed = JSON.parse(raw);
-    const state = parsed && typeof parsed.state === "object" && parsed.state ? parsed.state : {};
+    const state = sanitizeSharedState(parsed && typeof parsed.state === "object" && parsed.state ? parsed.state : {});
     const updatedAt = typeof parsed.updatedAt === "string" ? parsed.updatedAt : "";
     return { state, updatedAt };
   } catch {
@@ -69,9 +144,14 @@ function ensureStateFile() {
   }
 }
 
-function writeStateFile(nextState) {
+function writeStateFile(nextState, baseState) {
+  ensureStateFile();
+  const current = readStateFile();
+  const safeNextState = sanitizeSharedState(nextState);
+  const safeBaseState = sanitizeSharedState(baseState);
+  const mergedState = Object.keys(safeBaseState).length ? mergeSharedState(safeBaseState, safeNextState, current.state) : safeNextState;
   const payload = {
-    state: nextState && typeof nextState === "object" ? nextState : {},
+    state: mergedState,
     updatedAt: new Date().toISOString()
   };
 
@@ -188,7 +268,8 @@ const server = http.createServer(async (req, res) => {
         const rawBody = await collectRequestBody(req);
         const body = rawBody ? JSON.parse(rawBody) : {};
         const nextState = body && typeof body.state === "object" ? body.state : {};
-        const saved = writeStateFile(nextState);
+        const baseState = body && typeof body.baseState === "object" ? body.baseState : null;
+        const saved = writeStateFile(nextState, baseState);
         sendJson(res, 200, saved);
       } catch (error) {
         sendJson(res, 400, { error: "Invalid JSON body" });
@@ -203,10 +284,24 @@ const server = http.createServer(async (req, res) => {
   serveStatic(req, res);
 });
 
-ensureStateFile();
+if (require.main === module) {
+  ensureStateFile();
+  server.listen(PORT, HOST, () => {
+    console.log(`Family Core Values server running at http://${HOST}:${PORT}`);
+    console.log(`Shared state endpoint: http://${HOST}:${PORT}${API_STATE_PATH}`);
+    console.log(`Shared state file: ${STATE_FILE}`);
+  });
+}
 
-server.listen(PORT, HOST, () => {
-  console.log(`Family Core Values server running at http://${HOST}:${PORT}`);
-  console.log(`Shared state endpoint: http://${HOST}:${PORT}${API_STATE_PATH}`);
-  console.log(`Shared state file: ${STATE_FILE}`);
-});
+module.exports = {
+  API_STATE_PATH,
+  HOST,
+  PORT,
+  STATE_FILE,
+  sanitizeSharedState,
+  mergeSharedState,
+  readStateFile,
+  writeStateFile,
+  resolveSafePath,
+  server
+};

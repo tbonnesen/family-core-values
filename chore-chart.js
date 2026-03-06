@@ -6,32 +6,8 @@ const STORAGE = fcv.STORAGE || {
   PROFILE_CHORE_COMPLETION: "fcv_profile_chore_completion_v2",
   PROFILE_CHORE_APPROVAL: "fcv_profile_chore_approval_v1"
 };
-const PROFILE_ICON_GLYPHS = {
-  rocket: "\u{1F680}",
-  star: "\u2B50",
-  lion: "\u{1F981}",
-  fox: "\u{1F98A}",
-  dino: "\u{1F996}",
-  soccer: "\u26BD",
-  paint: "\u{1F3A8}",
-  book: "\u{1F4DA}",
-  music: "\u{1F3B5}",
-  sparkles: "\u2728",
-  crown: "\u{1F451}",
-  robot: "\u{1F916}",
-  plane: "\u2708",
-  puzzle: "\u{1F9E9}",
-  gamepad: "\u{1F3AE}",
-  globe: "\u{1F30D}",
-  camera: "\u{1F4F7}",
-  heart: "\u{1F496}",
-  rainbow: "\u{1F308}",
-  car: "\u{1F697}",
-  guitar: "\u{1F3B8}",
-  planet: "\u{1FA90}",
-  butterfly: "\u{1F98B}",
-  dragon: "\u{1F409}"
-};
+const PROFILE_ICON_GLYPHS =
+  fcv.PROFILE_ICON_GLYPHS && typeof fcv.PROFILE_ICON_GLYPHS === "object" ? fcv.PROFILE_ICON_GLYPHS : { star: "\u2B50" };
 const PROFILE_AGES =
   Array.isArray(fcv.PROFILE_AGES_DEFAULT) && fcv.PROFILE_AGES_DEFAULT.length ? fcv.PROFILE_AGES_DEFAULT : [1, 2, 3, 4, 5, 6, 7];
 const PROFILE_ICON_IDS = Object.keys(PROFILE_ICON_GLYPHS);

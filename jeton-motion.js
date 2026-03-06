@@ -3,6 +3,21 @@
   const observedRevealNodes = new WeakSet();
   let revealObserver = null;
   let refreshRaf = 0;
+  const DYNAMIC_CONTAINERS = [
+    ".layout",
+    ".detail-layout",
+    ".chore-chart-layout",
+    "#value-grid",
+    "#other-values",
+    "#profile-list",
+    "#chore-list",
+    "#weekly-plan-list",
+    "#value-suggest-list",
+    "#milestone-list",
+    "#approvals-list",
+    "#reflection-list",
+    "#chore-chart-grid"
+  ];
 
   function queryMotionTargets() {
     return Array.from(
@@ -78,7 +93,7 @@
         hero.style.setProperty("--jeton-my", (y * 10).toFixed(2) + "px");
       });
 
-        hero.addEventListener("pointerleave", () => {
+      hero.addEventListener("pointerleave", () => {
         // Animate back to center smoothly via a short CSS transition
         hero.style.transition = "transform 400ms cubic-bezier(0.22, 0.78, 0.24, 1)";
         hero.style.setProperty("--jeton-mx", "0px");
@@ -154,6 +169,11 @@
     });
   }
 
+  function getObservedContainers() {
+    const containers = DYNAMIC_CONTAINERS.flatMap((selector) => Array.from(document.querySelectorAll(selector)));
+    return containers.length ? containers : [document.body];
+  }
+
   function setupKeyboardNavDetection() {
     document.addEventListener("keydown", (e) => {
       if (e.key === "Tab") {
@@ -179,7 +199,9 @@
       const observer = new MutationObserver(() => {
         scheduleRefreshMotionBindings();
       });
-      observer.observe(document.body, { childList: true, subtree: true });
+      getObservedContainers().forEach((container) => {
+        observer.observe(container, { childList: true, subtree: true });
+      });
     }
   }
 
