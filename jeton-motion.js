@@ -94,13 +94,14 @@
       });
 
       hero.addEventListener("pointerleave", () => {
-        // Animate back to center smoothly via a short CSS transition
+        // Reset custom properties — transitionend won't fire on CSS vars without @property,
+        // so clear the inline transition via setTimeout after the duration elapses.
         hero.style.transition = "transform 400ms cubic-bezier(0.22, 0.78, 0.24, 1)";
         hero.style.setProperty("--jeton-mx", "0px");
         hero.style.setProperty("--jeton-my", "0px");
-        hero.addEventListener("transitionend", () => {
+        setTimeout(() => {
           hero.style.transition = "";
-        }, { once: true });
+        }, 420);
       });
     });
   }
@@ -121,6 +122,9 @@
         }
 
         const rect = card.getBoundingClientRect();
+        if (!rect.width || !rect.height) {
+          return;
+        }
         const px = (event.clientX - rect.left) / rect.width - 0.5;
         const py = (event.clientY - rect.top) / rect.height - 0.5;
         card.style.setProperty("--jeton-tilt-x", (px * 2.4).toFixed(2) + "deg");

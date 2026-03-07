@@ -428,7 +428,11 @@ function saveJSON(key, data) {
     fcv.saveJSON(key, data);
     return;
   }
-  localStorage.setItem(key, JSON.stringify(data));
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch {
+    // QuotaExceededError or SecurityError — fail silently to prevent app crash
+  }
 }
 
 function safeGetItem(key) {
@@ -538,7 +542,7 @@ function getValueToneClass(identifier) {
   }
 
   const index = values.findIndex((item) => item.name === value.name);
-  return index >= 0 ? `value-tone-${(index % values.length) + 1}` : "";
+  return index >= 0 ? `value-tone-${index + 1}` : "";
 }
 
 function cloneLayoutState(state) {
@@ -1977,7 +1981,7 @@ function setActiveProfile(profileId, options = {}) {
   }
 
   const activeProfile = getActiveProfile();
-  activeChildLabel.textContent = activeProfile ? `Viewing: ${activeProfile.name}` : "";
+  if (activeChildLabel) activeChildLabel.textContent = activeProfile ? `Viewing: ${activeProfile.name}` : "";
 
   setProgress(getActiveProgress());
   loadReflections();
@@ -2060,6 +2064,7 @@ function renderProfileAgeGrid() {
 }
 
 function getSelectedAgesFromGrid() {
+  if (!profileAgeGrid) { return []; }
   const checkboxes = profileAgeGrid.querySelectorAll('input[type="checkbox"]:checked');
   return Array.from(checkboxes)
     .map((checkbox) => Number(checkbox.value))
@@ -2266,9 +2271,9 @@ function setProgress(progress) {
   profileProgressMap[activeProfile.id] = progress;
   saveJSON(STORAGE.PROFILE_PROGRESS, profileProgressMap);
 
-  attemptsCount.textContent = progress.attempts;
-  correctCount.textContent = progress.correct;
-  streakCount.textContent = progress.streak;
+  if (attemptsCount) attemptsCount.textContent = progress.attempts;
+  if (correctCount) correctCount.textContent = progress.correct;
+  if (streakCount) streakCount.textContent = progress.streak;
 }
 
 function getActiveMemoryStats() {
@@ -2477,7 +2482,7 @@ function buildValueCards() {
       .slice(0, 2)
       .toUpperCase();
 
-    const tone = `value-card--tone-${(index % values.length) + 1}`;
+    const tone = `value-card--tone-${index + 1}`;
     const slug = value.slug || slugify(value.name);
 
     card.classList.add(tone);
@@ -2499,6 +2504,7 @@ function buildValueCards() {
 }
 
 function setSpotlight() {
+  if (!spotlightValue || !spotlightMessage) { return; }
   if (!values.length) {
     spotlightValue.textContent = "No Value Selected";
     spotlightMessage.textContent = "Add values to show a daily spotlight.";
@@ -3847,8 +3853,8 @@ function initParentApprovalWorkflow() {
 }
 
 function loadReflections() {
+  if (!reflectionList) { return; }
   const reflections = getActiveReflections();
-  const hadItems = reflectionList.childElementCount > 0;
   reflectionList.innerHTML = "";
 
   if (!reflections.length) {
@@ -3865,9 +3871,7 @@ function loadReflections() {
   reflections.slice(0, 8).forEach((entry, index) => {
     const item = document.createElement("li");
     item.className = "reflection-item";
-    if (!hadItems && index === 0) {
-      item.classList.add("jeton-item-enter");
-    } else if (index === 0 && hadItems) {
+    if (index === 0) {
       item.classList.add("jeton-item-enter");
     }
     const textEl = document.createElement("span");

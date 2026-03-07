@@ -52,22 +52,6 @@
   }
 }
 
-@keyframes jeton-light-sweep {
-  from {
-    transform: translateX(-120%);
-    opacity: 0;
-  }
-  35% {
-    opacity: 0.4;
-  }
-  70% {
-    opacity: 0.18;
-  }
-  to {
-    transform: translateX(120%);
-    opacity: 0;
-  }
-}
 
 *,
 *::before,
@@ -153,30 +137,6 @@ h3 {
   border-radius: var(--jet-radius-md) !important;
 }
 
-.hero {
-  border-color: var(--jet-border-strong) !important;
-  border-radius: var(--jet-radius-lg) !important;
-  background:
-    radial-gradient(circle at 84% 30%, rgba(210, 165, 55, 0.24), transparent 28%),
-    radial-gradient(circle at 18% 70%, rgba(60, 85, 180, 0.14), transparent 30%),
-    linear-gradient(150deg, rgba(10, 16, 34, 0.88), rgba(5, 9, 22, 0.92) 75%) !important;
-  backdrop-filter: blur(16px) saturate(130%) !important;
-  -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
-  box-shadow: var(--jet-shadow-md) !important;
-  padding: 1.65rem 1.5rem !important;
-  transform: translate3d(var(--jeton-mx, 0px), var(--jeton-my, 0px), 0);
-  transition: transform 280ms ease-out;
-  overflow: hidden;
-}
-
-.hero::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(118deg, transparent 28%, rgba(232, 180, 100, 0.16) 48%, transparent 68%);
-  animation: jeton-light-sweep 6.4s ease-in-out infinite;
-}
 
 .hero__content {
   max-width: 820px !important;
@@ -657,7 +617,7 @@ body.layout-editing .layout > .panel {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(16, 10, 4, 0.6) !important;
+  background: rgba(4, 8, 20, 0.6) !important;
   border-radius: 99px !important;
 }
 
@@ -673,7 +633,7 @@ body.layout-editing .layout > .panel {
 
 * {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(192, 120, 64, 0.45) rgba(16, 10, 4, 0.6) !important;
+  scrollbar-color: rgba(192, 120, 64, 0.45) rgba(4, 8, 20, 0.6) !important;
 }
 
 /* ── 2. Button active / press states ─────────────────────────────────── */
