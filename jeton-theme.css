@@ -1131,3 +1131,154 @@ input[type="checkbox"]:focus-visible {
 .chore-item:has(.value-tone-6) { border-left: 3px solid rgba(251, 191, 36, 0.55) !important; }
 .chore-item:has(.value-tone-7) { border-left: 3px solid rgba(167, 139, 250, 0.55) !important; }
 .chore-item:has(.value-tone-8) { border-left: 3px solid rgba(248, 113, 113, 0.55) !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   FULL-BLEED SECTIONS — warm & textured, no card style
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── Grain texture overlay ──────────────────────────────────────────── */
+html::before {
+  content: '' !important;
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  z-index: 9999 !important;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E") !important;
+  background-repeat: repeat !important;
+  background-size: 180px !important;
+  opacity: 0.045 !important;
+  mix-blend-mode: overlay !important;
+}
+
+/* ── Hero: remove card, just typography + controls ──────────────────── */
+.hero {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(210, 158, 80, 0.14) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  padding: 2rem 1.5rem 1.75rem !important;
+}
+
+.hero::after {
+  display: none !important;
+}
+
+/* ── Panels: transparent sections with thin amber dividers ──────────── */
+.panel {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(210, 158, 80, 0.11) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 1.75rem 1.5rem !important;
+}
+
+.panel:hover {
+  border-color: rgba(210, 158, 80, 0.22) !important;
+  box-shadow: none !important;
+}
+
+/* Nullify all per-panel background overrides */
+.panel--spotlight,
+.panel--weekly,
+.panel--values,
+.panel--memory {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(210, 158, 80, 0.11) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Keep challenge panel flex so content scrolls correctly */
+.panel--challenge {
+  display: flex !important;
+  flex-direction: column !important;
+  min-height: 0 !important;
+}
+
+/* ── Panel h2: amber left-bar accent instead of bottom border ───────── */
+.panel > h2:first-child,
+.panel > h2[id] {
+  border-bottom: none !important;
+  padding-bottom: 0.3rem !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+}
+
+.panel > h2:first-child::before,
+.panel > h2[id]::before {
+  content: '' !important;
+  display: inline-block !important;
+  width: 3px !important;
+  height: 1em !important;
+  background: var(--jet-primary) !important;
+  border-radius: 2px !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── Value cards: minimal semi-transparent rows ─────────────────────── */
+.value-card,
+.other-value-link {
+  background: rgba(28, 16, 6, 0.5) !important;
+  border: 1px solid rgba(210, 158, 80, 0.1) !important;
+  box-shadow: none !important;
+}
+
+.value-card:hover,
+.value-card:focus-within,
+.other-value-link:hover,
+.other-value-link:focus-visible {
+  background: rgba(42, 24, 8, 0.72) !important;
+  border-color: rgba(232, 160, 48, 0.34) !important;
+  box-shadow: none !important;
+}
+
+/* ── Chore & plan items: simple transparent rows ────────────────────── */
+.chore-item,
+.chore-chart-item {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(210, 158, 80, 0.08) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding-top: 0.65rem !important;
+  padding-bottom: 0.65rem !important;
+}
+
+/* ── Milestone groups: no card ──────────────────────────────────────── */
+.milestone-group {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0.25rem 0 !important;
+}
+
+/* ── Reflection items: simple rows ─────────────────────────────────── */
+.reflection-item {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(210, 158, 80, 0.1) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ── Profile cards: very subtle ─────────────────────────────────────── */
+.chore-profile-card {
+  background: rgba(28, 16, 6, 0.5) !important;
+  border: 1px solid rgba(210, 158, 80, 0.12) !important;
+  box-shadow: none !important;
+}
+
+/* ── Hero controls: float cleanly on transparent bg ─────────────────── */
+.hero__view,
+.hero__filter,
+.hero__layout-controls {
+  background: rgba(22, 12, 4, 0.7) !important;
+  box-shadow: none !important;
+}

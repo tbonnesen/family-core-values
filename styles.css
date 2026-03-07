@@ -437,9 +437,7 @@ h3 {
 }
 
 .hero__sparkles span {
-  position: absolute;
-  border-radius: 999px;
-  opacity: 0.45;
+  display: none;
 }
 
 .hero__sparkles span:nth-child(1) {
