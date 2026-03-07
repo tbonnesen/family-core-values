@@ -1282,3 +1282,109 @@ html::before {
   background: rgba(6, 10, 22, 0.7) !important;
   box-shadow: none !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   UNIQUE HOVER EFFECTS PER VALUE TONE
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Smoother transition for tone cards */
+.value-card[class*="value-card--tone-"] {
+  transition:
+    transform 240ms cubic-bezier(0.22, 0.78, 0.24, 1),
+    border-color 240ms ease,
+    background-color 240ms ease,
+    box-shadow 240ms ease !important;
+}
+
+/* Tone 1 — Blue · slides right with cool blue glow */
+.value-card--tone-1:hover,
+.value-card--tone-1:focus-within {
+  transform: perspective(900px) translateX(7px) !important;
+  box-shadow: -5px 0 32px rgba(79, 134, 247, 0.30), 0 4px 18px rgba(79, 134, 247, 0.14) !important;
+  border-left-color: rgba(79, 134, 247, 0.95) !important;
+  border-color: rgba(79, 134, 247, 0.35) !important;
+  background: rgba(79, 134, 247, 0.07) !important;
+}
+
+/* Tone 2 — Orange · scales up with warm flame glow */
+.value-card--tone-2:hover,
+.value-card--tone-2:focus-within {
+  transform: perspective(900px) scale(1.016) !important;
+  box-shadow: 0 8px 36px rgba(251, 146, 60, 0.28), 0 0 0 1px rgba(251, 146, 60, 0.22) !important;
+  border-left-color: rgba(251, 146, 60, 0.95) !important;
+  border-color: rgba(251, 146, 60, 0.34) !important;
+  background: rgba(251, 146, 60, 0.07) !important;
+}
+
+/* Tone 3 — Teal · floats upward with cool teal glow */
+.value-card--tone-3:hover,
+.value-card--tone-3:focus-within {
+  transform: perspective(900px) translateY(-6px) !important;
+  box-shadow: 0 16px 44px rgba(34, 211, 238, 0.26), 0 4px 14px rgba(34, 211, 238, 0.12) !important;
+  border-left-color: rgba(34, 211, 238, 0.95) !important;
+  border-color: rgba(34, 211, 238, 0.30) !important;
+  background: rgba(34, 211, 238, 0.05) !important;
+}
+
+/* Tone 4 — Pink · blooms with a rosy inner glow */
+.value-card--tone-4:hover,
+.value-card--tone-4:focus-within {
+  transform: perspective(900px) scale(1.012) translateY(-2px) !important;
+  box-shadow: 0 8px 32px rgba(244, 114, 182, 0.28), inset 0 0 40px rgba(244, 114, 182, 0.06) !important;
+  border-left-color: rgba(244, 114, 182, 0.95) !important;
+  border-color: rgba(244, 114, 182, 0.32) !important;
+  background: rgba(244, 114, 182, 0.06) !important;
+}
+
+/* Tone 5 — Green · rises with a natural lift */
+.value-card--tone-5:hover,
+.value-card--tone-5:focus-within {
+  transform: perspective(900px) translateY(-7px) !important;
+  box-shadow: 0 18px 48px rgba(74, 222, 128, 0.24), 0 0 0 1px rgba(74, 222, 128, 0.16) !important;
+  border-left-color: rgba(74, 222, 128, 0.95) !important;
+  border-color: rgba(74, 222, 128, 0.28) !important;
+  background: rgba(74, 222, 128, 0.05) !important;
+}
+
+/* Tone 6 — Amber · radiates gold light */
+.value-card--tone-6:hover,
+.value-card--tone-6:focus-within {
+  transform: perspective(900px) scale(1.01) !important;
+  box-shadow:
+    0 0 48px rgba(251, 191, 36, 0.28),
+    0 6px 22px rgba(251, 191, 36, 0.18),
+    0 0 0 1px rgba(251, 191, 36, 0.26) !important;
+  border-left-color: rgba(251, 191, 36, 0.95) !important;
+  border-color: rgba(251, 191, 36, 0.34) !important;
+  background: rgba(251, 191, 36, 0.07) !important;
+}
+
+/* Tone 7 — Violet · 3-D tilt with purple depth */
+.value-card--tone-7:hover,
+.value-card--tone-7:focus-within {
+  transform: perspective(900px) rotateY(-3deg) translateX(4px) !important;
+  box-shadow: 9px 6px 38px rgba(167, 139, 250, 0.28), -2px 0 18px rgba(167, 139, 250, 0.14) !important;
+  border-left-color: rgba(167, 139, 250, 0.95) !important;
+  border-color: rgba(167, 139, 250, 0.32) !important;
+  background: rgba(167, 139, 250, 0.06) !important;
+}
+
+/* Tone 8 — Red · pulses with red energy */
+@keyframes jeton-tone8-pulse {
+  0%, 100% {
+    transform: perspective(900px) scale(1.014);
+    box-shadow: 0 6px 28px rgba(248, 113, 113, 0.26), 0 0 0 1px rgba(248, 113, 113, 0.18);
+  }
+  50% {
+    transform: perspective(900px) scale(1.020);
+    box-shadow: 0 10px 44px rgba(248, 113, 113, 0.42), 0 0 0 1px rgba(248, 113, 113, 0.34);
+  }
+}
+
+.value-card--tone-8:hover,
+.value-card--tone-8:focus-within {
+  animation: jeton-tone8-pulse 1.4s ease-in-out infinite !important;
+  border-left-color: rgba(248, 113, 113, 0.95) !important;
+  border-color: rgba(248, 113, 113, 0.32) !important;
+  background: rgba(248, 113, 113, 0.06) !important;
+}
