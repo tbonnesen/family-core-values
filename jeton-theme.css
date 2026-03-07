@@ -1,28 +1,34 @@
 :root {
-  --jet-bg-0: #0b0817;
-  --jet-bg-1: #0e0b1a;
-  --jet-bg-2: #14102a;
-  --jet-surface: rgba(22, 16, 42, 0.74);
-  --jet-surface-strong: rgba(30, 22, 56, 0.92);
-  --jet-card: rgba(18, 14, 36, 0.88);
-  --jet-border: rgba(151, 138, 210, 0.22);
-  --jet-border-strong: rgba(172, 158, 230, 0.34);
+  --jet-bg-0: #0d0905;
+  --jet-bg-1: #150c06;
+  --jet-bg-2: #1e1208;
+  --jet-surface: rgba(30, 18, 8, 0.74);
+  --jet-surface-strong: rgba(40, 24, 10, 0.92);
+  --jet-card: rgba(24, 14, 6, 0.88);
+  --jet-border: rgba(210, 158, 80, 0.22);
+  --jet-border-strong: rgba(232, 180, 100, 0.34);
   --jet-text: #edf3ff;
-  --jet-text-soft: #c8c0e8;
-  --jet-text-muted: #9a8fc0;
+  --jet-text-soft: #e8d0a4;
+  --jet-text-muted: #b8936a;
   --jet-primary: #e8a030;
   --jet-primary-strong: #d08820;
   --jet-primary-soft: rgba(232, 160, 48, 0.14);
-  --jet-secondary: #7c6af5;
-  --jet-secondary-soft: rgba(124, 106, 245, 0.16);
+  --jet-secondary: #c07840;
+  --jet-secondary-soft: rgba(192, 120, 64, 0.16);
   --jet-success: #34d399;
   --jet-danger: #ff6f7a;
   --jet-radius-sm: 10px;
   --jet-radius-md: 12px;
   --jet-radius-lg: 16px;
-  --jet-shadow-sm: 0 10px 28px rgba(4, 2, 14, 0.42);
-  --jet-shadow-md: 0 18px 46px rgba(3, 2, 12, 0.56);
+  --jet-shadow-sm: 0 10px 28px rgba(8, 4, 2, 0.48);
+  --jet-shadow-md: 0 18px 46px rgba(6, 3, 1, 0.60);
   --jet-motion: 150ms ease-in-out;
+}
+
+@keyframes jeton-title-shimmer {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 @keyframes jeton-fade-up {
@@ -73,10 +79,10 @@ html,
 body {
   color: var(--jet-text) !important;
   background:
-    radial-gradient(circle at 14% 8%, rgba(100, 80, 200, 0.32), transparent 32%),
-    radial-gradient(circle at 86% 10%, rgba(232, 160, 48, 0.16), transparent 34%),
-    radial-gradient(circle at 50% 120%, rgba(80, 60, 160, 0.26), transparent 36%),
-    linear-gradient(180deg, var(--jet-bg-1), var(--jet-bg-0) 42%, #08051a 100%) !important;
+    radial-gradient(circle at 14% 8%, rgba(192, 100, 20, 0.30), transparent 32%),
+    radial-gradient(circle at 86% 10%, rgba(232, 160, 48, 0.20), transparent 34%),
+    radial-gradient(circle at 50% 120%, rgba(160, 80, 10, 0.22), transparent 36%),
+    linear-gradient(180deg, var(--jet-bg-1), var(--jet-bg-0) 42%, #060301 100%) !important;
 }
 
 body::before {
@@ -84,7 +90,7 @@ body::before {
 }
 
 body::after {
-  background: radial-gradient(circle at center, transparent 24%, rgba(4, 2, 14, 0.54) 100%) !important;
+  background: radial-gradient(circle at center, transparent 24%, rgba(6, 3, 1, 0.54) 100%) !important;
 }
 
 h1,
@@ -98,6 +104,24 @@ h1 {
   font-size: clamp(2.35rem, 5.1vw, 3.7rem) !important;
   line-height: 1.06 !important;
   font-weight: 800 !important;
+}
+
+.hero h1 {
+  background: linear-gradient(
+    110deg,
+    #fde68a 0%,
+    #f5c878 18%,
+    #e8a030 36%,
+    #fffbeb 52%,
+    #e8a030 68%,
+    #d08820 84%,
+    #fde68a 100%
+  ) !important;
+  background-size: 260% 100% !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  animation: jeton-title-shimmer 5s ease-in-out infinite !important;
 }
 
 h2 {
@@ -124,7 +148,7 @@ h3 {
 .profile-item,
 .value-scripture {
   border: 1px solid var(--jet-border) !important;
-  background: linear-gradient(155deg, rgba(24, 18, 52, 0.92), rgba(12, 9, 30, 0.92) 78%) !important;
+  background: linear-gradient(155deg, rgba(28, 16, 6, 0.92), rgba(18, 10, 4, 0.92) 78%) !important;
   box-shadow: var(--jet-shadow-sm) !important;
   border-radius: var(--jet-radius-md) !important;
 }
@@ -133,9 +157,9 @@ h3 {
   border-color: var(--jet-border-strong) !important;
   border-radius: var(--jet-radius-lg) !important;
   background:
-    radial-gradient(circle at 84% 30%, rgba(232, 160, 48, 0.22), transparent 22%),
-    radial-gradient(circle at 18% 70%, rgba(124, 106, 245, 0.2), transparent 26%),
-    linear-gradient(150deg, rgba(30, 22, 58, 0.9), rgba(14, 10, 32, 0.92) 75%) !important;
+    radial-gradient(circle at 84% 30%, rgba(232, 160, 48, 0.32), transparent 24%),
+    radial-gradient(circle at 18% 70%, rgba(192, 120, 51, 0.18), transparent 28%),
+    linear-gradient(150deg, rgba(42, 22, 8, 0.9), rgba(24, 12, 4, 0.92) 75%) !important;
   backdrop-filter: blur(16px) saturate(130%) !important;
   -webkit-backdrop-filter: blur(16px) saturate(130%) !important;
   box-shadow: var(--jet-shadow-md) !important;
@@ -188,7 +212,7 @@ h3 {
 
 .panel--challenge .choices {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(124, 106, 245, 0.35) transparent !important;
+  scrollbar-color: rgba(192, 120, 64, 0.35) transparent !important;
 }
 
 .panel--challenge .choices::-webkit-scrollbar {
@@ -196,7 +220,7 @@ h3 {
 }
 
 .panel--challenge .choices::-webkit-scrollbar-thumb {
-  background: rgba(124, 106, 245, 0.4) !important;
+  background: rgba(192, 120, 64, 0.4) !important;
   border-radius: 99px !important;
 }
 
@@ -263,8 +287,8 @@ body.view-mode-mobile .value-card__link.value-card__link--compact {
 .hero__filter,
 .hero__layout-controls {
   border: 1px solid var(--jet-border) !important;
-  background: rgba(16, 11, 34, 0.78) !important;
-  box-shadow: 0 8px 24px rgba(4, 2, 14, 0.44) !important;
+  background: rgba(22, 12, 4, 0.78) !important;
+  box-shadow: 0 8px 24px rgba(8, 4, 2, 0.44) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
 }
@@ -318,7 +342,7 @@ body.view-mode-mobile .value-card__link.value-card__link--compact {
 .hero__view-btn,
 .chore-complete,
 .profile-pill {
-  background: rgba(24, 18, 46, 0.9) !important;
+  background: rgba(28, 16, 6, 0.9) !important;
   border-color: var(--jet-border-strong) !important;
   color: var(--jet-text) !important;
 }
@@ -331,7 +355,7 @@ body.view-mode-mobile .value-card__link.value-card__link--compact {
 .chore-complete:focus-visible {
   border-color: var(--jet-primary) !important;
   color: #fde8c0 !important;
-  background: rgba(38, 28, 72, 0.95) !important;
+  background: rgba(40, 24, 8, 0.95) !important;
 }
 
 .hero__view-btn.is-active {
@@ -372,7 +396,7 @@ select {
   -webkit-appearance: none !important;
   border-radius: var(--jet-radius-sm) !important;
   border: 1px solid var(--jet-border) !important;
-  background: rgba(10, 7, 24, 0.88) !important;
+  background: rgba(12, 7, 3, 0.88) !important;
   color: var(--jet-text) !important;
   min-height: 44px !important;
   padding: 0.68rem 0.82rem !important;
@@ -426,7 +450,7 @@ select:focus-visible {
   padding: 0 !important;
   border-radius: 999px !important;
   border: 1px solid var(--jet-border) !important;
-  background: rgba(10, 7, 22, 0.85) !important;
+  background: rgba(14, 8, 3, 0.85) !important;
   color: transparent !important;
   font-size: 0 !important;
   line-height: 0 !important;
@@ -478,7 +502,7 @@ body.layout-editing .layout > .panel {
 .panel-layout-size,
 .panel-layout-resize {
   border-color: var(--jet-border) !important;
-  background: rgba(14, 10, 30, 0.9) !important;
+  background: rgba(18, 10, 4, 0.9) !important;
   color: var(--jet-text-soft) !important;
 }
 
@@ -504,7 +528,7 @@ body.layout-editing .layout > .panel {
 .other-value-link:hover,
 .other-value-link:focus-visible {
   border-color: rgba(232, 160, 48, 0.62) !important;
-  background: linear-gradient(155deg, rgba(32, 24, 64, 0.96), rgba(16, 11, 38, 0.96) 78%) !important;
+  background: linear-gradient(155deg, rgba(40, 24, 8, 0.96), rgba(24, 14, 4, 0.96) 78%) !important;
   box-shadow:
     0 16px 30px rgba(4, 2, 14, 0.52),
     0 0 0 1px rgba(232, 160, 48, 0.26),
@@ -599,7 +623,7 @@ body.layout-editing .layout > .panel {
 /* ── Reflection item — jeton theme overrides ────────────────────────── */
 .reflection-item {
   border: 1px solid var(--jet-border) !important;
-  background: linear-gradient(155deg, rgba(24, 18, 52, 0.92), rgba(12, 9, 30, 0.92) 78%) !important;
+  background: linear-gradient(155deg, rgba(28, 16, 6, 0.92), rgba(18, 10, 4, 0.92) 78%) !important;
   box-shadow: var(--jet-shadow-sm) !important;
   border-radius: var(--jet-radius-md) !important;
 }
@@ -611,7 +635,7 @@ body.layout-editing .layout > .panel {
 }
 
 .panel--memory {
-  border-top: 3px solid rgba(124, 106, 245, 0.5) !important;
+  border-top: 3px solid rgba(192, 120, 51, 0.5) !important;
 }
 
 /* ── Memory inner layout overrides ─────────────────────────────────── */
@@ -633,23 +657,23 @@ body.layout-editing .layout > .panel {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(14, 11, 26, 0.6) !important;
+  background: rgba(16, 10, 4, 0.6) !important;
   border-radius: 99px !important;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, rgba(124, 106, 245, 0.5), rgba(100, 80, 200, 0.35)) !important;
+  background: linear-gradient(180deg, rgba(192, 120, 64, 0.5), rgba(160, 90, 30, 0.35)) !important;
   border-radius: 99px !important;
-  border: 1px solid rgba(124, 106, 245, 0.2) !important;
+  border: 1px solid rgba(192, 120, 64, 0.2) !important;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, rgba(124, 106, 245, 0.72), rgba(100, 80, 200, 0.56)) !important;
+  background: linear-gradient(180deg, rgba(192, 120, 64, 0.72), rgba(160, 90, 30, 0.56)) !important;
 }
 
 * {
   scrollbar-width: thin !important;
-  scrollbar-color: rgba(124, 106, 245, 0.45) rgba(14, 11, 26, 0.6) !important;
+  scrollbar-color: rgba(192, 120, 64, 0.45) rgba(16, 10, 4, 0.6) !important;
 }
 
 /* ── 2. Button active / press states ─────────────────────────────────── */
@@ -664,7 +688,7 @@ body.layout-editing .layout > .panel {
 .hero__view-btn:active,
 .chore-complete:active {
   transform: scale(0.97) translateY(1px) !important;
-  background: rgba(18, 14, 36, 0.95) !important;
+  background: rgba(22, 14, 6, 0.95) !important;
 }
 
 .btn--danger:active,
@@ -693,11 +717,11 @@ body.layout-editing .layout > .panel {
 
 /* ── 4. Panel hover glow ─────────────────────────────────────────────── */
 .panel:hover {
-  border-color: rgba(151, 138, 210, 0.38) !important;
+  border-color: rgba(210, 158, 80, 0.38) !important;
   box-shadow:
     var(--jet-shadow-sm),
-    0 0 0 1px rgba(124, 106, 245, 0.1),
-    0 0 32px rgba(100, 80, 200, 0.12) !important;
+    0 0 0 1px rgba(192, 120, 64, 0.12),
+    0 0 32px rgba(160, 90, 20, 0.14) !important;
 }
 
 body.layout-editing .panel:hover {
@@ -712,16 +736,16 @@ select:focus-visible {
     0 0 0 3px rgba(232, 160, 48, 0.18),
     0 4px 16px rgba(232, 160, 48, 0.12),
     inset 0 1px 3px rgba(4, 2, 14, 0.4) !important;
-  background: rgba(14, 10, 28, 0.94) !important;
+  background: rgba(18, 10, 4, 0.94) !important;
   outline: none !important;
 }
 
 /* ── 7. Chore completion flash ───────────────────────────────────────── */
 @keyframes jeton-complete-flash {
-  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); background: linear-gradient(155deg, rgba(24, 18, 52, 0.92), rgba(12, 9, 30, 0.92) 78%); }
+  0%   { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); background: linear-gradient(155deg, rgba(28, 16, 6, 0.92), rgba(18, 10, 4, 0.92) 78%); }
   30%  { box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.35); background: linear-gradient(155deg, rgba(22, 58, 42, 0.94), rgba(12, 36, 26, 0.94) 78%); }
   70%  { box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.2); }
-  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); background: linear-gradient(155deg, rgba(24, 18, 52, 0.92), rgba(12, 9, 30, 0.92) 78%); }
+  100% { box-shadow: 0 0 0 0 rgba(52, 211, 153, 0); background: linear-gradient(155deg, rgba(28, 16, 6, 0.92), rgba(18, 10, 4, 0.92) 78%); }
 }
 
 .jeton-complete-flash {
@@ -789,8 +813,8 @@ select:focus-visible {
 .panel::before {
   background: linear-gradient(
     148deg,
-    rgba(151, 138, 210, 0.07) 0%,
-    rgba(124, 106, 245, 0.04) 40%,
+    rgba(210, 158, 80, 0.07) 0%,
+    rgba(192, 120, 64, 0.04) 40%,
     transparent 70%
   ) !important;
 }
@@ -915,7 +939,7 @@ body.jeton-keyboard-nav :focus-visible {
   color: var(--jet-text) !important;
   padding-bottom: 0.6rem !important;
   margin-bottom: 0.5rem !important;
-  border-bottom: 1px solid rgba(151, 138, 210, 0.14) !important;
+  border-bottom: 1px solid rgba(210, 158, 80, 0.14) !important;
 }
 
 /* Key feature panels get an amber-accent title */
@@ -930,8 +954,8 @@ body.jeton-keyboard-nav :focus-visible {
 .panel--spotlight {
   background:
     radial-gradient(circle at 90% 20%, rgba(232, 160, 48, 0.16), transparent 50%),
-    radial-gradient(circle at 10% 80%, rgba(124, 106, 245, 0.12), transparent 45%),
-    linear-gradient(155deg, rgba(28, 22, 58, 0.96), rgba(14, 11, 28, 0.96) 78%) !important;
+    radial-gradient(circle at 10% 80%, rgba(192, 120, 51, 0.12), transparent 45%),
+    linear-gradient(155deg, rgba(38, 20, 6, 0.96), rgba(22, 12, 4, 0.96) 78%) !important;
   border-color: rgba(232, 160, 48, 0.28) !important;
 }
 
@@ -960,9 +984,9 @@ body.jeton-keyboard-nav :focus-visible {
 
 /* ── 6. Choice buttons — warmer, richer ─────────────────────────────── */
 .choice-btn {
-  background: linear-gradient(155deg, rgba(28, 22, 52, 0.94), rgba(18, 14, 36, 0.94)) !important;
-  border: 1px solid rgba(151, 138, 210, 0.26) !important;
-  border-left: 3px solid rgba(124, 106, 245, 0.45) !important;
+  background: linear-gradient(155deg, rgba(32, 18, 6, 0.94), rgba(20, 12, 4, 0.94)) !important;
+  border: 1px solid rgba(210, 158, 80, 0.26) !important;
+  border-left: 3px solid rgba(192, 120, 64, 0.45) !important;
   color: var(--jet-text-soft) !important;
   padding: 0.82rem 1rem !important;
   font-size: 0.95rem !important;
@@ -980,7 +1004,7 @@ body.jeton-keyboard-nav :focus-visible {
 .choice-btn:focus-visible {
   border-color: rgba(232, 160, 48, 0.6) !important;
   border-left-color: var(--jet-primary) !important;
-  background: linear-gradient(155deg, rgba(38, 30, 68, 0.98), rgba(22, 17, 44, 0.98)) !important;
+  background: linear-gradient(155deg, rgba(46, 26, 8, 0.98), rgba(28, 16, 4, 0.98)) !important;
   color: var(--jet-text) !important;
   box-shadow: 0 0 0 1px rgba(232, 160, 48, 0.18), 0 4px 16px rgba(4, 2, 14, 0.4) !important;
   transform: translateX(2px) !important;
@@ -1008,8 +1032,8 @@ input[type="checkbox"] {
   height: 18px !important;
   min-width: 18px !important;
   border-radius: 5px !important;
-  border: 1.5px solid rgba(151, 138, 210, 0.4) !important;
-  background: rgba(14, 11, 28, 0.8) !important;
+  border: 1.5px solid rgba(210, 158, 80, 0.4) !important;
+  background: rgba(16, 10, 4, 0.8) !important;
   cursor: pointer !important;
   position: relative !important;
   vertical-align: middle !important;
@@ -1019,7 +1043,7 @@ input[type="checkbox"] {
 
 input[type="checkbox"]:hover {
   border-color: rgba(232, 160, 48, 0.6) !important;
-  background: rgba(24, 18, 44, 0.9) !important;
+  background: rgba(28, 16, 6, 0.9) !important;
 }
 
 input[type="checkbox"]:checked {
@@ -1059,7 +1083,7 @@ input[type="checkbox"]:focus-visible {
 /* ── 8. Milestone age group headers ─────────────────────────────────── */
 .milestone-group {
   border: 1px solid var(--jet-border) !important;
-  background: linear-gradient(155deg, rgba(24, 18, 52, 0.92), rgba(12, 9, 30, 0.92) 78%) !important;
+  background: linear-gradient(155deg, rgba(28, 16, 6, 0.92), rgba(18, 10, 4, 0.92) 78%) !important;
   border-radius: var(--jet-radius-md) !important;
   padding: 1rem 1.1rem !important;
   box-shadow: var(--jet-shadow-sm) !important;
@@ -1077,7 +1101,7 @@ input[type="checkbox"]:focus-visible {
 
 .milestone-item {
   padding: 0.62rem 0 !important;
-  border-bottom: 1px solid rgba(151, 138, 210, 0.1) !important;
+  border-bottom: 1px solid rgba(210, 158, 80, 0.1) !important;
   background: transparent !important;
   border-radius: 0 !important;
   box-shadow: none !important;
