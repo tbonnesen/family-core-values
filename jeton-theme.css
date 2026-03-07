@@ -833,3 +833,277 @@ body.jeton-keyboard-nav :focus-visible {
   outline: 2px solid rgba(232, 160, 48, 0.72) !important;
   outline-offset: 3px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   WARM & VIBRANT REVAMP
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ── 2. Vibrant value tone badge colors ─────────────────────────────── */
+/* These override the dark/muddy colors from the previous design pass    */
+.value-card--tone-1 .value-card__badge,
+.value-tone-1 {
+  background: linear-gradient(135deg, #4f86f7, #2563eb) !important;
+  border-color: rgba(79, 134, 247, 0.5) !important;
+  color: #e8f0ff !important;
+}
+.value-card--tone-2 .value-card__badge,
+.value-tone-2 {
+  background: linear-gradient(135deg, #fb923c, #ea6500) !important;
+  border-color: rgba(251, 146, 60, 0.5) !important;
+  color: #fff3e0 !important;
+}
+.value-card--tone-3 .value-card__badge,
+.value-tone-3 {
+  background: linear-gradient(135deg, #22d3ee, #0891b2) !important;
+  border-color: rgba(34, 211, 238, 0.5) !important;
+  color: #cffafe !important;
+}
+.value-card--tone-4 .value-card__badge,
+.value-tone-4 {
+  background: linear-gradient(135deg, #f472b6, #db2777) !important;
+  border-color: rgba(244, 114, 182, 0.5) !important;
+  color: #fdf2f8 !important;
+}
+.value-card--tone-5 .value-card__badge,
+.value-tone-5 {
+  background: linear-gradient(135deg, #4ade80, #16a34a) !important;
+  border-color: rgba(74, 222, 128, 0.5) !important;
+  color: #dcfce7 !important;
+}
+.value-card--tone-6 .value-card__badge,
+.value-tone-6 {
+  background: linear-gradient(135deg, #fbbf24, #d97706) !important;
+  border-color: rgba(251, 191, 36, 0.5) !important;
+  color: #fefce8 !important;
+}
+.value-card--tone-7 .value-card__badge,
+.value-tone-7 {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed) !important;
+  border-color: rgba(167, 139, 250, 0.5) !important;
+  color: #ede9fe !important;
+}
+.value-card--tone-8 .value-card__badge,
+.value-tone-8 {
+  background: linear-gradient(135deg, #f87171, #dc2626) !important;
+  border-color: rgba(248, 113, 113, 0.5) !important;
+  color: #fef2f2 !important;
+}
+
+/* ── 3. Value card tone left-border accents ─────────────────────────── */
+.value-card--tone-1 { border-left: 3px solid rgba(79, 134, 247, 0.55) !important; }
+.value-card--tone-2 { border-left: 3px solid rgba(251, 146, 60, 0.55) !important; }
+.value-card--tone-3 { border-left: 3px solid rgba(34, 211, 238, 0.55) !important; }
+.value-card--tone-4 { border-left: 3px solid rgba(244, 114, 182, 0.55) !important; }
+.value-card--tone-5 { border-left: 3px solid rgba(74, 222, 128, 0.55) !important; }
+.value-card--tone-6 { border-left: 3px solid rgba(251, 191, 36, 0.55) !important; }
+.value-card--tone-7 { border-left: 3px solid rgba(167, 139, 250, 0.55) !important; }
+.value-card--tone-8 { border-left: 3px solid rgba(248, 113, 113, 0.55) !important; }
+
+/* Badge size — slightly larger for more presence */
+.value-card__badge {
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 0.82rem !important;
+}
+
+/* ── 4. Panel h2 stronger typography ────────────────────────────────── */
+.panel > h2:first-child,
+.panel > h2[id] {
+  font-size: clamp(1.05rem, 1.9vw, 1.35rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.025em !important;
+  color: var(--jet-text) !important;
+  padding-bottom: 0.6rem !important;
+  margin-bottom: 0.5rem !important;
+  border-bottom: 1px solid rgba(151, 138, 210, 0.14) !important;
+}
+
+/* Key feature panels get an amber-accent title */
+.panel--spotlight > h2,
+.panel--weekly > h2,
+.panel--values > h2,
+.panel--memory > h2 {
+  color: var(--jet-primary) !important;
+}
+
+/* ── 5. Spotlight panel special treatment ───────────────────────────── */
+.panel--spotlight {
+  background:
+    radial-gradient(circle at 90% 20%, rgba(232, 160, 48, 0.16), transparent 50%),
+    radial-gradient(circle at 10% 80%, rgba(124, 106, 245, 0.12), transparent 45%),
+    linear-gradient(155deg, rgba(28, 22, 58, 0.96), rgba(14, 11, 28, 0.96) 78%) !important;
+  border-color: rgba(232, 160, 48, 0.28) !important;
+}
+
+.spotlight-value {
+  font-size: clamp(1.5rem, 3.5vw, 2.2rem) !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.1 !important;
+  background: linear-gradient(135deg, #f5c878, #e8a030 55%, #d08820) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  margin: 0.4rem 0 0.3rem !important;
+}
+
+/* Weekly panel value name gets same treatment */
+#weekly-value.spotlight-value {
+  font-size: clamp(1.25rem, 2.5vw, 1.7rem) !important;
+}
+
+.spotlight-message {
+  font-size: 0.96rem !important;
+  line-height: 1.55 !important;
+  color: var(--jet-text-soft) !important;
+}
+
+/* ── 6. Choice buttons — warmer, richer ─────────────────────────────── */
+.choice-btn {
+  background: linear-gradient(155deg, rgba(28, 22, 52, 0.94), rgba(18, 14, 36, 0.94)) !important;
+  border: 1px solid rgba(151, 138, 210, 0.26) !important;
+  border-left: 3px solid rgba(124, 106, 245, 0.45) !important;
+  color: var(--jet-text-soft) !important;
+  padding: 0.82rem 1rem !important;
+  font-size: 0.95rem !important;
+  font-weight: 600 !important;
+  border-radius: var(--jet-radius-md) !important;
+  transition:
+    border-color var(--jet-motion),
+    background var(--jet-motion),
+    color var(--jet-motion),
+    transform var(--jet-motion),
+    box-shadow var(--jet-motion) !important;
+}
+
+.choice-btn:hover,
+.choice-btn:focus-visible {
+  border-color: rgba(232, 160, 48, 0.6) !important;
+  border-left-color: var(--jet-primary) !important;
+  background: linear-gradient(155deg, rgba(38, 30, 68, 0.98), rgba(22, 17, 44, 0.98)) !important;
+  color: var(--jet-text) !important;
+  box-shadow: 0 0 0 1px rgba(232, 160, 48, 0.18), 0 4px 16px rgba(4, 2, 14, 0.4) !important;
+  transform: translateX(2px) !important;
+}
+
+.choice-btn.correct {
+  border-color: rgba(52, 211, 153, 0.72) !important;
+  border-left-color: #34d399 !important;
+  background: linear-gradient(155deg, rgba(18, 52, 38, 0.96), rgba(10, 32, 22, 0.96)) !important;
+  color: #a7f3d0 !important;
+}
+
+.choice-btn.incorrect {
+  border-color: rgba(248, 113, 113, 0.72) !important;
+  border-left-color: #f87171 !important;
+  background: linear-gradient(155deg, rgba(52, 18, 18, 0.96), rgba(32, 10, 10, 0.96)) !important;
+  color: #fecaca !important;
+}
+
+/* ── 7. Custom checkbox styling ─────────────────────────────────────── */
+input[type="checkbox"] {
+  appearance: none !important;
+  -webkit-appearance: none !important;
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  border-radius: 5px !important;
+  border: 1.5px solid rgba(151, 138, 210, 0.4) !important;
+  background: rgba(14, 11, 28, 0.8) !important;
+  cursor: pointer !important;
+  position: relative !important;
+  vertical-align: middle !important;
+  transition: border-color var(--jet-motion), background var(--jet-motion), box-shadow var(--jet-motion) !important;
+  flex-shrink: 0 !important;
+}
+
+input[type="checkbox"]:hover {
+  border-color: rgba(232, 160, 48, 0.6) !important;
+  background: rgba(24, 18, 44, 0.9) !important;
+}
+
+input[type="checkbox"]:checked {
+  background: linear-gradient(135deg, var(--jet-primary), var(--jet-primary-strong)) !important;
+  border-color: var(--jet-primary) !important;
+  box-shadow: 0 0 0 2px rgba(232, 160, 48, 0.2) !important;
+}
+
+input[type="checkbox"]:checked::after {
+  content: "" !important;
+  position: absolute !important;
+  left: 4px !important;
+  top: 1px !important;
+  width: 6px !important;
+  height: 10px !important;
+  border: 2px solid #160e02 !important;
+  border-top: none !important;
+  border-left: none !important;
+  transform: rotate(45deg) !important;
+  display: block !important;
+}
+
+input[type="checkbox"]:focus-visible {
+  outline: 2px solid rgba(232, 160, 48, 0.7) !important;
+  outline-offset: 2px !important;
+}
+
+/* Age checkbox label alignment */
+.age-checkbox-group label,
+.profile-form label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 0.5rem !important;
+  cursor: pointer !important;
+}
+
+/* ── 8. Milestone age group headers ─────────────────────────────────── */
+.milestone-group {
+  border: 1px solid var(--jet-border) !important;
+  background: linear-gradient(155deg, rgba(24, 18, 52, 0.92), rgba(12, 9, 30, 0.92) 78%) !important;
+  border-radius: var(--jet-radius-md) !important;
+  padding: 1rem 1.1rem !important;
+  box-shadow: var(--jet-shadow-sm) !important;
+}
+
+.milestone-group h3 {
+  font-size: 1.05rem !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--jet-primary) !important;
+  padding-bottom: 0.55rem !important;
+  margin-bottom: 0.55rem !important;
+  border-bottom: 1px solid rgba(232, 160, 48, 0.2) !important;
+}
+
+.milestone-item {
+  padding: 0.62rem 0 !important;
+  border-bottom: 1px solid rgba(151, 138, 210, 0.1) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-top: none !important;
+}
+
+.milestone-item:last-child {
+  border-bottom: none !important;
+  padding-bottom: 0 !important;
+}
+
+.milestone-item.is-complete .milestone-text {
+  opacity: 0.52 !important;
+  text-decoration: line-through !important;
+  text-decoration-color: rgba(52, 211, 153, 0.5) !important;
+}
+
+/* ── Chore & weekly plan item left-border accents by tone ────────────── */
+/* Uses :has() to style the parent without adding the badge class to it  */
+.chore-item:has(.value-tone-1) { border-left: 3px solid rgba(79, 134, 247, 0.55) !important; }
+.chore-item:has(.value-tone-2) { border-left: 3px solid rgba(251, 146, 60, 0.55) !important; }
+.chore-item:has(.value-tone-3) { border-left: 3px solid rgba(34, 211, 238, 0.55) !important; }
+.chore-item:has(.value-tone-4) { border-left: 3px solid rgba(244, 114, 182, 0.55) !important; }
+.chore-item:has(.value-tone-5) { border-left: 3px solid rgba(74, 222, 128, 0.55) !important; }
+.chore-item:has(.value-tone-6) { border-left: 3px solid rgba(251, 191, 36, 0.55) !important; }
+.chore-item:has(.value-tone-7) { border-left: 3px solid rgba(167, 139, 250, 0.55) !important; }
+.chore-item:has(.value-tone-8) { border-left: 3px solid rgba(248, 113, 113, 0.55) !important; }

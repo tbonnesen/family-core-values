@@ -443,29 +443,29 @@ h3 {
 }
 
 .hero__sparkles span:nth-child(1) {
-  width: 100px;
-  height: 100px;
-  right: 36px;
-  top: 24px;
-  background: radial-gradient(circle at 30% 30%, rgba(117, 145, 192, 0.78), rgba(65, 103, 165, 0));
+  width: 120px;
+  height: 120px;
+  right: 32px;
+  top: 18px;
+  background: radial-gradient(circle at 35% 35%, rgba(232, 160, 48, 0.82), rgba(180, 110, 20, 0));
   animation: glow-drift 5s ease-in-out infinite;
 }
 
 .hero__sparkles span:nth-child(2) {
-  width: 64px;
-  height: 64px;
-  right: 130px;
-  top: 98px;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 143, 62, 0.78), rgba(216, 65, 33, 0));
+  width: 72px;
+  height: 72px;
+  right: 148px;
+  top: 88px;
+  background: radial-gradient(circle at 30% 30%, rgba(124, 106, 245, 0.74), rgba(80, 58, 200, 0));
   animation: glow-drift 4.6s ease-in-out infinite reverse;
 }
 
 .hero__sparkles span:nth-child(3) {
-  width: 42px;
-  height: 42px;
-  right: 116px;
-  top: 12px;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 94, 76, 0.72), rgba(216, 45, 45, 0));
+  width: 46px;
+  height: 46px;
+  right: 110px;
+  top: 10px;
+  background: radial-gradient(circle at 30% 30%, rgba(52, 211, 153, 0.66), rgba(20, 160, 110, 0));
   animation: glow-drift 5.4s ease-in-out infinite;
 }
 
